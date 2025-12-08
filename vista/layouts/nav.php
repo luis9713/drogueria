@@ -60,7 +60,19 @@
     </ul>
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
-        <a href="../controlador/Logout.php">Cerrar Sesion</a>
+        <!-- Indicador de estado de caja -->
+        <li class="nav-item" id="indicador-caja-nav">
+          <a class="nav-link" href="adm_gestion_caja.php" id="badge-estado-caja">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span class="badge badge-secondary">Verificando...</span>
+          </a>
+        </li>
+        
+        <li class="nav-item">
+          <a href="../controlador/Logout.php" class="nav-link">
+            <i class="fas fa-sign-out-alt mr-1"></i>Cerrar Sesión
+          </a>
+        </li>
     </ul>
   </nav>
   <!-- /.navbar -->
@@ -136,6 +148,22 @@
               <i class="nav-icon fas fa-money-check-alt"></i>
               <p>
                 Listar Creditos
+              </p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="adm_gestion_caja.php" class="nav-link">
+              <i class="nav-icon fas fa-cash-register"></i>
+              <p>
+                Gestión de Caja
+              </p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="adm_contabilidad.php" class="nav-link">
+              <i class="nav-icon fas fa-book"></i>
+              <p>
+                Contabilidad
               </p>
             </a>
           </li>

@@ -6,10 +6,10 @@ class Venta{
         $db= new Conexion();
         $this->acceso=$db->pdo;
     }
-    function Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago){
-        $sql="INSERT INTO venta(fecha,total,vendedor,id_cliente,tipo_pago,depositado) values(:fecha,:total,:vendedor,:cliente,:tipo_pago,:pago)";
+    function Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago,$id_caja=null){
+        $sql="INSERT INTO venta(fecha,total,vendedor,id_cliente,tipo_pago,depositado,id_caja) values(:fecha,:total,:vendedor,:cliente,:tipo_pago,:pago,:id_caja)";
         $query = $this->acceso->prepare($sql);
-        $query->execute(array(':fecha'=>$fecha,':cliente'=>$cliente,':total'=>$total,':vendedor'=>$vendedor, ':tipo_pago'=>$tipo_pago, ':pago'=>$pago));
+        $query->execute(array(':fecha'=>$fecha,':cliente'=>$cliente,':total'=>$total,':vendedor'=>$vendedor, ':tipo_pago'=>$tipo_pago, ':pago'=>$pago, ':id_caja'=>$id_caja));
     }
     function Depositar($id,$depositado,$tipo_pago){
         $sql="UPDATE venta SET depositado=:depositado, tipo_pago=:tipo_pago where id_venta=:id";

@@ -1,12 +1,22 @@
 <?php
 include '../modelo/Venta.php';
+include '../modelo/Caja.php';
 include_once '../modelo/Conexion.php';
 $venta = new Venta();
+$caja = new Caja();
 session_start();
 $vendedor = $_SESSION['usuario'];
+
+// Obtener id de caja abierta
+$caja_abierta = $caja->verificar_caja_abierta();
+$id_caja = null;
+if (!empty($caja_abierta)) {
+    $id_caja = $caja_abierta[0]->id_caja;
+}
 if($_POST['funcion']=='depositar'){
     $id=$_POST['id'];
     $pago=$_POST['pago'];
+    date_default_timezone_set('America/Bogota');
     $fecha = date('Y-m-d H:i:s');
 
     $venta->buscar_credito_id($id);
@@ -24,7 +34,7 @@ if($_POST['funcion']=='depositar'){
         $tipo_pago = $tipo_pago . "_Pagado";
     }
 
-    $venta->Crear($id_cliente,$pago,$fecha,$vendedor,"Deposito_" . $id,$pago);
+    $venta->Crear($id_cliente,$pago,$fecha,$vendedor,"Deposito_" . $id,$pago,$id_caja);
 
     
 
@@ -39,7 +49,7 @@ if($_POST['funcion']=='registrar_compra'){
     $pago=(float)$_POST['pago'];
     date_default_timezone_set('America/Bogota');
     $fecha = date('Y-m-d H:i:s');
-    $venta->Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago);
+    $venta->Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago,$id_caja);
     $venta->ultima_venta();
 
     foreach ($venta->objetos as $objeto) {
@@ -48,7 +58,7 @@ if($_POST['funcion']=='registrar_compra'){
     }
 
     if(strcmp($tipo_pago, "Credito") == 0 && $pago > 0.0) {  
-        $venta->Crear($cliente,$pago,$fecha,$vendedor,"Deposito_" . $id_venta ,$pago);
+        $venta->Crear($cliente,$pago,$fecha,$vendedor,"Deposito_" . $id_venta ,$pago,$id_caja);
     }
     
     try {

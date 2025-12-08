@@ -248,36 +248,54 @@ $(document).ready(function () {
   }
 
   function Procesar_compra() {
-    let cliente = $("#cliente").val();
-    if (RecuperarLS().length == 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "No hay productos, Selecciones algunos!",
-      }).then(function () {
-        location.href = "../vista/adm_catalogo.php";
-      });
-    } else if (cliente == "") {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Necesitamos un cliente!",
-      });
-    } else {
-      Verificar_stock().then((error) => {
-        if (error == 0) {
-          Registrar_compra(cliente);
-          Swal.fire({
-            position: "center",
-            icon: "success",
-            title: "Se realizo la compra",
-            showConfirmButton: false,
-            timer: 1500,
-          }).then(function () {
-            EliminarLS();
-            location.href = "../vista/adm_catalogo.php";
-          });
-        } else {
+    // Primero verificar si hay caja abierta
+    let funcion_caja = "verificar_caja_abierta";
+    $.post("../controlador/CajaController.php", { funcion: funcion_caja }, (response) => {
+      const resultado = JSON.parse(response);
+      
+      if (resultado.estado === 'cerrada') {
+        // No hay caja abierta
+        Swal.fire({
+          icon: "warning",
+          title: "Caja no abierta",
+          html: "No se puede procesar la venta porque no hay una caja abierta.<br><br>Por favor, vaya a <strong>Gestión de Caja</strong> para abrir una caja.",
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#3085d6"
+        });
+        return;
+      }
+      
+      // Si hay caja abierta, continuar con la venta normal
+      let cliente = $("#cliente").val();
+      if (RecuperarLS().length == 0) {
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "No hay productos, Selecciones algunos!",
+        }).then(function () {
+          location.href = "../vista/adm_catalogo.php";
+        });
+      } else if (cliente == "") {
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Necesitamos un cliente!",
+        });
+      } else {
+        Verificar_stock().then((error) => {
+          if (error == 0) {
+            Registrar_compra(cliente);
+            Swal.fire({
+              position: "center",
+              icon: "success",
+              title: "Se realizo la compra",
+              showConfirmButton: false,
+              timer: 1500,
+            }).then(function () {
+              EliminarLS();
+              location.href = "../vista/adm_catalogo.php";
+            });
+          } else {
           Swal.fire({
             icon: "error",
             title: "Oops...",
@@ -285,7 +303,8 @@ $(document).ready(function () {
           });
         }
       });
-    }
+      }
+    });
   }
 
   async function Verificar_stock() {

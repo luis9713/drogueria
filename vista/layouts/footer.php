@@ -22,6 +22,8 @@
 <!-- select2 -->
 <script src="../js/select2.js"></script>
 <script src="../js/datatables.js"></script>
+<!-- Sistema de Caja -->
+<script src="../js/Caja.js"></script>
 </body>
 <script>
   let funcion = 'devolver_avatar';
