@@ -86,8 +86,7 @@ class Lote{
     function crear_lote($codigo,$cantidad,$vencimiento,$precio_compra,$id_compra,$id_producto){
         $sql="INSERT INTO lote(codigo,cantidad,cantidad_lote,vencimiento,precio_compra,id_compra,id_producto) values (:codigo,:cantidad,:cantidad_lote,:vencimiento,:precio_compra,:id_compra,:id_producto)";
         $query = $this->acceso->prepare($sql);
-        $query->execute(array(':codigo'=>$codigo,':cantidad'=>$cantidad,':cantidad_lote'=>$cantidad,':vencimiento'=>$vencimiento,':precio_compra'=>$precio_compra,':id_compra'=>$id_compra,':id_producto'=>$id_producto));
-        echo 'add';
+        return $query->execute(array(':codigo'=>$codigo,':cantidad'=>$cantidad,':cantidad_lote'=>$cantidad,':vencimiento'=>$vencimiento,':precio_compra'=>$precio_compra,':id_compra'=>$id_compra,':id_producto'=>$id_producto));
     }
     function ver($id){
         $sql="SELECT l.codigo as codigo, l.cantidad as cantidad, vencimiento, precio_compra, p.nombre as producto, concentracion,adicional,
@@ -140,6 +139,32 @@ class Lote{
               join presentacion pre on p.prod_present=id_presentacion
               WHERE l.estado='A' AND l.cantidad_lote > 0
              GROUP BY l.id_producto
+        ";
+        $query=$this->acceso->prepare($sql);
+        $query->execute();
+        $this->objetos=$query->fetchall();
+        return $this->objetos;
+    }
+
+    function obtener_stock_completo(){
+        // Función para alertas: trae TODOS los productos incluyendo los sin lotes
+        $sql="SELECT COALESCE(SUM(l.cantidad_lote), 0) As stock ,
+              p.nombre as medicamento,
+              p.concentracion as concentracion,
+              p.adicional as adicional,
+              la.nombre as laboratorio,
+              t.nombre as tipo,
+              pre.nombre as presentacion,
+              p.id_producto as id_producto
+
+              FROM producto p
+              LEFT JOIN lote l ON l.id_producto=p.id_producto AND l.estado='A'
+              JOIN laboratorio la on p.prod_lab=id_laboratorio
+              JOIN tipo_producto t on p.prod_tip_prod=id_tip_prod
+              JOIN presentacion pre on p.prod_present=id_presentacion
+              WHERE p.estado='A'
+             GROUP BY p.id_producto
+             ORDER BY stock ASC
         ";
         $query=$this->acceso->prepare($sql);
         $query->execute();

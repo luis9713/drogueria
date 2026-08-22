@@ -1,5 +1,13 @@
 <?php
 include '../modelo/Proveedor.php';
+session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $proveedor = new Proveedor();
 if($_POST['funcion']=='crear'){
     $nombre = $_POST['nombre'];

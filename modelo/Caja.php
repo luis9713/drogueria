@@ -49,11 +49,25 @@ class Caja {
     function obtener_caja_actual() {
         $sql = "SELECT c.*, 
                 u1.nombre_us as nombre_apertura, u1.apellidos_us as apellido_apertura,
-                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Contado' THEN v.total ELSE 0 END), 0) as total_ventas_contado,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Contado' THEN v.total ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN (v.total - COALESCE(v.depositado, 0)) ELSE 0 END), 0) as total_ventas_contado,
                 COALESCE(SUM(CASE WHEN v.tipo_pago = 'Credito' THEN v.total ELSE 0 END), 0) as total_ventas_credito,
-                COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' THEN v.depositado ELSE 0 END), 0) as total_depositos_credito,
-                COUNT(CASE WHEN v.tipo_pago = 'Contado' THEN 1 END) as cantidad_ventas_contado,
-                COUNT(CASE WHEN v.tipo_pago = 'Credito' THEN 1 END) as cantidad_ventas_credito
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Nequi' THEN v.total ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN COALESCE(v.depositado, 0) ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND (
+                    (COALESCE(v.medio_pago, '') = 'Nequi')
+                    OR (COALESCE(v.medio_pago, '') = '' AND v.tipo_pago LIKE 'DepositoNequi_%')
+                ) THEN v.depositado ELSE 0 END), 0) as total_ventas_nequi,
+                COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND (
+                    COALESCE(v.medio_pago, 'Efectivo') = 'Efectivo'
+                    OR (COALESCE(v.medio_pago, '') = '' AND v.tipo_pago NOT LIKE 'DepositoNequi_%')
+                ) THEN v.depositado ELSE 0 END), 0) as total_depositos_credito,
+                COUNT(CASE WHEN v.tipo_pago = 'Contado' OR v.tipo_pago = 'Mixto' THEN 1 END) as cantidad_ventas_contado,
+                COUNT(CASE WHEN v.tipo_pago = 'Credito' THEN 1 END) as cantidad_ventas_credito,
+                COUNT(CASE WHEN v.tipo_pago = 'Nequi' OR v.tipo_pago = 'Mixto' OR (v.tipo_pago LIKE 'Deposito_%' AND (
+                    COALESCE(v.medio_pago, '') = 'Nequi'
+                    OR (COALESCE(v.medio_pago, '') = '' AND v.tipo_pago LIKE 'DepositoNequi_%')
+                )) THEN 1 END) as cantidad_ventas_nequi
                 FROM caja c
                 LEFT JOIN usuario u1 ON c.id_usuario_apertura = u1.id_usuario
                 LEFT JOIN venta v ON v.id_caja = c.id_caja
@@ -67,29 +81,64 @@ class Caja {
         return $this->objetos;
     }
 
-    // Cerrar caja
-    function cerrar_caja($id_caja, $efectivo_real, $id_usuario, $observaciones = '') {
-        date_default_timezone_set('America/Bogota');
-        $fecha_cierre = date('Y-m-d H:i:s');
+    private function obtener_totales_caja($id_caja) {
+        // Intento 1: esquema nuevo con columna medio_pago
+        try {
+            $sql = "SELECT 
+                    c.monto_inicial,
+                    COALESCE(SUM(CASE WHEN v.tipo_pago = 'Contado' THEN v.total ELSE 0 END), 0)
+                    + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN (v.total - COALESCE(v.depositado, 0)) ELSE 0 END), 0) as total_ventas_contado,
+                    COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND COALESCE(v.medio_pago, 'Efectivo') = 'Efectivo' THEN v.depositado ELSE 0 END), 0) as total_depositos_credito,
+                    COALESCE(SUM(CASE WHEN v.tipo_pago = 'Credito' THEN v.total ELSE 0 END), 0) as total_ventas_credito,
+                    COALESCE(SUM(CASE WHEN v.tipo_pago = 'Nequi' THEN v.total ELSE 0 END), 0)
+                    + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN COALESCE(v.depositado, 0) ELSE 0 END), 0)
+                    + COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND COALESCE(v.medio_pago, '') = 'Nequi' THEN v.depositado ELSE 0 END), 0) as total_ventas_nequi
+                    FROM caja c
+                    LEFT JOIN venta v ON v.id_caja = c.id_caja
+                    WHERE c.id_caja = :id_caja
+                    GROUP BY c.id_caja, c.monto_inicial";
+            $query = $this->acceso->prepare($sql);
+            $query->execute(array(':id_caja' => $id_caja));
+            $datos = $query->fetch(PDO::FETCH_OBJ);
+            if ($datos) {
+                return $datos;
+            }
+        } catch (Exception $e) {
+            // fallback abajo
+        }
 
-        // Obtener totales de la caja
+        // Fallback: esquema antiguo, sin medio_pago. Mantiene compatibilidad por prefijo heredado.
         $sql = "SELECT 
                 c.monto_inicial,
-                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Contado' THEN v.total ELSE 0 END), 0) as total_ventas_contado,
-                COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' THEN v.depositado ELSE 0 END), 0) as total_depositos_credito,
-                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Credito' THEN v.total ELSE 0 END), 0) as total_ventas_credito
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Contado' THEN v.total ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN (v.total - COALESCE(v.depositado, 0)) ELSE 0 END), 0) as total_ventas_contado,
+                COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND v.tipo_pago NOT LIKE 'DepositoNequi_%' THEN v.depositado ELSE 0 END), 0) as total_depositos_credito,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Credito' THEN v.total ELSE 0 END), 0) as total_ventas_credito,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Nequi' THEN v.total ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN COALESCE(v.depositado, 0) ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'DepositoNequi_%' THEN v.depositado ELSE 0 END), 0) as total_ventas_nequi
                 FROM caja c
                 LEFT JOIN venta v ON v.id_caja = c.id_caja
                 WHERE c.id_caja = :id_caja
                 GROUP BY c.id_caja, c.monto_inicial";
         $query = $this->acceso->prepare($sql);
         $query->execute(array(':id_caja' => $id_caja));
-        $datos = $query->fetch(PDO::FETCH_OBJ);
+        return $query->fetch(PDO::FETCH_OBJ);
+    }
 
+    // Cerrar caja
+    function cerrar_caja($id_caja, $efectivo_real, $id_usuario, $observaciones = '') {
+        date_default_timezone_set('America/Bogota');
+        $fecha_cierre = date('Y-m-d H:i:s');
+
+        // Obtener totales de la caja (incluyendo Nequi y depósitos por medio de pago)
+        $datos = $this->obtener_totales_caja($id_caja);
+
+        // El efectivo esperado NO incluye Nequi (es dinero digital aparte)
         $efectivo_esperado = $datos->monto_inicial + $datos->total_ventas_contado + $datos->total_depositos_credito;
         $diferencia = $efectivo_real - $efectivo_esperado;
 
-        // Actualizar caja
+        // Actualizar caja (guardar total_ventas_nequi si la columna existe)
         $sql = "UPDATE caja SET 
                 fecha_cierre = :fecha_cierre,
                 monto_final = :monto_final,
@@ -119,22 +168,43 @@ class Caja {
             ':id_caja' => $id_caja
         ));
 
+        // Intentar guardar total_ventas_nequi (si la columna ya fue creada con el SQL)
+        try {
+            $sql2 = "UPDATE caja SET total_ventas_nequi = :total_ventas_nequi WHERE id_caja = :id_caja";
+            $q2 = $this->acceso->prepare($sql2);
+            $q2->execute(array(':total_ventas_nequi' => $datos->total_ventas_nequi, ':id_caja' => $id_caja));
+        } catch (Exception $e) { /* columna aún no existe */ }
+
         if ($result) {
-            // Calcular utilidad del día (lo que se suma a contabilidad)
+            // Calcular utilidad del día (efectivo real - monto inicial)
             $utilidad = $efectivo_real - $datos->monto_inicial;
-            return array('success' => true, 'utilidad' => $utilidad, 'id_caja' => $id_caja);
+            return array(
+                'success' => true,
+                'utilidad' => $utilidad,
+                'id_caja' => $id_caja,
+                'total_ventas_nequi' => $datos->total_ventas_nequi
+            );
         }
         return array('success' => false);
     }
 
     // Listar todas las cajas (historial)
     function listar_cajas($limit = 50) {
-        $sql = "SELECT c.*, 
+        $sql = "SELECT c.*,
                 u1.nombre_us as nombre_apertura, u1.apellidos_us as apellido_apertura,
-                u2.nombre_us as nombre_cierre, u2.apellidos_us as apellido_cierre
+                u2.nombre_us as nombre_cierre, u2.apellidos_us as apellido_cierre,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Credito' OR v.tipo_pago = 'Credito_Pagado' THEN v.total ELSE 0 END), 0) as total_ventas_credito,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Nequi' THEN v.total ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN COALESCE(v.depositado, 0) ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND (
+                    COALESCE(v.medio_pago, '') = 'Nequi'
+                    OR (COALESCE(v.medio_pago, '') = '' AND v.tipo_pago LIKE 'DepositoNequi_%')
+                ) THEN v.depositado ELSE 0 END), 0) as total_ventas_nequi
                 FROM caja c
                 LEFT JOIN usuario u1 ON c.id_usuario_apertura = u1.id_usuario
                 LEFT JOIN usuario u2 ON c.id_usuario_cierre = u2.id_usuario
+                LEFT JOIN venta v ON v.id_caja = c.id_caja
+                GROUP BY c.id_caja
                 ORDER BY c.fecha_apertura DESC
                 LIMIT :limit";
         $query = $this->acceso->prepare($sql);
@@ -148,11 +218,20 @@ class Caja {
     function obtener_caja_por_id($id_caja) {
         $sql = "SELECT c.*, 
                 u1.nombre_us as nombre_apertura, u1.apellidos_us as apellido_apertura,
-                u2.nombre_us as nombre_cierre, u2.apellidos_us as apellido_cierre
+                u2.nombre_us as nombre_cierre, u2.apellidos_us as apellido_cierre,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Nequi' THEN v.total ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago = 'Mixto' THEN COALESCE(v.depositado, 0) ELSE 0 END), 0)
+                + COALESCE(SUM(CASE WHEN v.tipo_pago LIKE 'Deposito_%' AND (
+                    COALESCE(v.medio_pago, '') = 'Nequi'
+                    OR (COALESCE(v.medio_pago, '') = '' AND v.tipo_pago LIKE 'DepositoNequi_%')
+                ) THEN v.depositado ELSE 0 END), 0) as total_ventas_nequi_calc,
+                COALESCE(SUM(CASE WHEN v.tipo_pago = 'Credito' OR v.tipo_pago = 'Credito_Pagado' THEN v.total ELSE 0 END), 0) as total_ventas_credito_calc
                 FROM caja c
                 LEFT JOIN usuario u1 ON c.id_usuario_apertura = u1.id_usuario
                 LEFT JOIN usuario u2 ON c.id_usuario_cierre = u2.id_usuario
-                WHERE c.id_caja = :id_caja";
+                LEFT JOIN venta v ON v.id_caja = c.id_caja
+                WHERE c.id_caja = :id_caja
+                GROUP BY c.id_caja";
         $query = $this->acceso->prepare($sql);
         $query->execute(array(':id_caja' => $id_caja));
         $this->objetos = $query->fetchAll();

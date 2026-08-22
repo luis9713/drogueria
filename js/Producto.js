@@ -116,7 +116,7 @@ $(document).ready(function() {
     });
 
     function buscar_producto(consulta) {
-        funcion = "buscar";
+        funcion = "buscar_gestion";
         $.post('../controlador/ProductoController.php', { consulta, funcion }, (response) => {
             // console.log(response);
             const productos = JSON.parse(response);

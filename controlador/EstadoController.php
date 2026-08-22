@@ -1,5 +1,13 @@
 <?php
 include '../modelo/Estado.php';
+session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $estado = new Estado();
 
 if($_POST['funcion']=='rellenar_estado'){

@@ -166,9 +166,13 @@ $(document).ready(function () {
       id_caja_actual = caja.id_caja;
       $("#btnCerrarCaja").prop('disabled', false);
 
+      const total_nequi = parseFloat(caja.total_ventas_nequi || 0);
       const efectivo_esperado = parseFloat(caja.monto_inicial) + 
                                parseFloat(caja.total_ventas_contado) + 
                                parseFloat(caja.total_depositos_credito);
+      const total_ventas_dia = parseFloat(caja.total_ventas_contado) + 
+                               parseFloat(caja.total_ventas_credito) + 
+                               total_nequi;
 
       const html = `
         <div class="row">
@@ -198,17 +202,30 @@ $(document).ready(function () {
                 <td><strong>Ventas Crédito:</strong></td>
                 <td class="text-info">$${formatearNumero(caja.total_ventas_credito)} (${caja.cantidad_ventas_credito})</td>
               </tr>
+              <tr style="background-color:#f3e5f5;">
+                <td><strong>Ventas Nequi 📱:</strong></td>
+                <td style="color:#6f42c1;" class="font-weight-bold">$${formatearNumero(total_nequi)} (${caja.cantidad_ventas_nequi || 0})</td>
+              </tr>
               <tr>
                 <td><strong>Depósitos Crédito:</strong></td>
                 <td class="text-info font-weight-bold">$${formatearNumero(caja.total_depositos_credito)}</td>
               </tr>
+              <tr class="table-warning">
+                <td><strong>Total Ventas del Día:</strong></td>
+                <td class="font-weight-bold">$${formatearNumero(total_ventas_dia)}</td>
+              </tr>
               <tr class="table-active">
-                <td><strong>Efectivo Esperado:</strong></td>
+                <td><strong>Efectivo Esperado (sin Nequi):</strong></td>
                 <td class="h5 mb-0 text-primary">$${formatearNumero(efectivo_esperado)}</td>
               </tr>
             </table>
           </div>
         </div>
+        ${total_nequi > 0 ? `
+        <div class="alert alert-info mt-2 mb-0 py-2">
+          <i class="fas fa-mobile-alt mr-1"></i>
+          <strong>Nequi:</strong> $${formatearNumero(total_nequi)} en ventas digitales (no se cuentan en el efectivo físico de la caja).
+        </div>` : ''}
       `;
       
       $("#info-caja-actual").html(html);
@@ -232,7 +249,17 @@ $(document).ready(function () {
           { data: 'fecha_apertura' },
           { data: 'fecha_cierre' },
           { data: 'monto_inicial' },
-          { data: 'total_ventas_contado' },
+          { 
+            data: null,
+            render: function(data, type, row) {
+              // Ventas totales = contado + depósitos de crédito + nequi
+              const contado = parseFloat((row.total_ventas_contado || '0').replace(/\./g, '').replace(',', '.')) || 0;
+              const depositos = parseFloat((row.total_depositos_credito || '0').replace(/\./g, '').replace(',', '.')) || 0;
+              const nequi = parseFloat((row.total_ventas_nequi || '0').replace(/\./g, '').replace(',', '.')) || 0;
+              const total = contado + depositos + nequi;
+              return formatearNumero(total);
+            }
+          },
           { data: 'efectivo_esperado' },
           { 
             data: 'monto_final',
@@ -307,12 +334,17 @@ $(document).ready(function () {
         return;
       }
 
+      const total_nequi_det = parseFloat(caja.total_ventas_nequi_calc || caja.total_ventas_nequi || 0);
+      const total_credito_det = parseFloat(caja.total_ventas_credito_calc || caja.total_ventas_credito || 0);
+      const total_depositos_det = parseFloat(caja.total_depositos_credito || 0);
       const efectivo_esperado = parseFloat(caja.monto_inicial || 0) + 
                                parseFloat(caja.total_ventas_contado || 0) + 
-                               parseFloat(caja.total_depositos_credito || 0);
+                               total_depositos_det;
+      // Total ventas del día = contado + depósitos de crédito + nequi (NO ventas a crédito, esas no son dinero recibido)
+      const total_ventas_det = parseFloat(caja.total_ventas_contado || 0) + total_depositos_det + total_nequi_det;
 
       let badge_diferencia = '';
-      if (caja.diferencia !== null) {
+      if (caja.diferencia !== null && caja.diferencia !== undefined) {
         const dif = parseFloat(caja.diferencia);
         if (dif > 0) {
           badge_diferencia = `<span class="badge badge-success">Sobrante: $${formatearNumero(dif)}</span>`;
@@ -371,14 +403,22 @@ $(document).ready(function () {
               </tr>
               <tr class="table-info">
                 <td><strong>Ventas Crédito:</strong></td>
-                <td>$${formatearNumero(caja.total_ventas_credito)}</td>
+                <td>$${formatearNumero(total_credito_det)}</td>
+              </tr>
+              <tr style="background-color:#f3e5f5;">
+                <td><strong><i class="fas fa-mobile-alt" style="color:#6f42c1;"></i> Ventas Nequi:</strong></td>
+                <td style="color:#6f42c1;" class="font-weight-bold">$${formatearNumero(total_nequi_det)}</td>
               </tr>
               <tr class="table-info">
                 <td><strong>Depósitos Crédito:</strong></td>
                 <td>$${formatearNumero(caja.total_depositos_credito)}</td>
               </tr>
+              <tr class="table-warning">
+                <td><strong>Total Ventas del Día:</strong></td>
+                <td class="font-weight-bold">$${formatearNumero(total_ventas_det)}</td>
+              </tr>
               <tr class="table-active">
-                <td><strong>Efectivo Esperado:</strong></td>
+                <td><strong>Efectivo Esperado (sin Nequi):</strong></td>
                 <td class="font-weight-bold">$${formatearNumero(efectivo_esperado)}</td>
               </tr>
               <tr class="table-primary">
@@ -392,6 +432,11 @@ $(document).ready(function () {
             </table>
           </div>
         </div>
+        ${total_nequi_det > 0 ? `
+          <div class="alert alert-info mt-2 mb-0 py-2">
+            <i class="fas fa-mobile-alt mr-1"></i>
+            <strong>Nequi:</strong> $${formatearNumero(total_nequi_det)} en ventas digitales (no se cuentan en el efectivo físico de la caja).
+          </div>` : ''}
         ${caja.observaciones ? `
           <div class="row mt-3">
             <div class="col-12">
@@ -423,17 +468,27 @@ $(document).ready(function () {
         return;
       }
 
+      const total_nequi_modal = parseFloat(caja.total_ventas_nequi || 0);
       const efectivo_esperado = parseFloat(caja.monto_inicial) + 
                                parseFloat(caja.total_ventas_contado) + 
                                parseFloat(caja.total_depositos_credito);
+
+      const nequi_info = total_nequi_modal > 0 
+        ? `<div class="alert mb-2 py-2" style="background-color:#f3e5f5; border-left:4px solid #6f42c1;">
+             <i class="fas fa-mobile-alt mr-1" style="color:#6f42c1;"></i>
+             <strong style="color:#6f42c1;">Nequi esperado en cuenta:</strong>
+             <span class="font-weight-bold" style="color:#6f42c1; float:right;">$${formatearNumero(total_nequi_modal)}</span>
+           </div>`
+        : '';
 
       Swal.fire({
         title: '🔒 Cerrar Caja',
         html: `
           <div class="text-left">
-            <div class="alert alert-info">
-              <strong>Efectivo Esperado:</strong> $${formatearNumero(efectivo_esperado)}
+            <div class="alert alert-info mb-2">
+              <strong>Efectivo Esperado (caja física):</strong> $${formatearNumero(efectivo_esperado)}
             </div>
+            ${nequi_info}
             <div class="form-group">
               <label for="efectivo_real_cierre">Efectivo Real Contado:</label>
               <input type="number" id="efectivo_real_cierre" class="form-control" 
@@ -441,7 +496,7 @@ $(document).ready(function () {
             </div>
             <div class="form-group">
               <label for="observaciones_cierre">Observaciones (opcional):</label>
-              <textarea id="observaciones_cierre" class="form-control" rows="3" 
+              <textarea id="observaciones_cierre" class="form-control" rows="2" 
                         placeholder="Ej: Todo en orden, sin novedades"></textarea>
             </div>
             <div id="info_diferencia" class="alert alert-warning" style="display:none;">
@@ -476,7 +531,7 @@ $(document).ready(function () {
           const efectivo_real = document.getElementById('efectivo_real_cierre').value;
           const observaciones = document.getElementById('observaciones_cierre').value;
           
-          if (!efectivo_real || efectivo_real < 0) {
+          if (!efectivo_real || Number(efectivo_real) < 0) {
             Swal.showValidationMessage('Debe ingresar el efectivo real');
             return false;
           }
@@ -510,15 +565,43 @@ $(document).ready(function () {
         const resultado = JSON.parse(response);
         
         if (resultado.success) {
+          const utilidad = parseFloat(resultado.utilidad || 0);
+          const total_nequi = parseFloat(resultado.total_nequi || 0);
+          const total_consolidado = utilidad + total_nequi;
+
+          let desglose = `
+            <table class="table table-sm mt-2 mb-0">
+              <tr>
+                <td class="text-left"><i class="fas fa-money-bill-wave text-success mr-1"></i><strong>Efectivo en caja:</strong></td>
+                <td class="text-right text-success font-weight-bold">$${formatearNumero(utilidad)}</td>
+              </tr>`;
+          if (total_nequi > 0) {
+            desglose += `
+              <tr>
+                <td class="text-left"><i class="fas fa-mobile-alt mr-1" style="color:#6f42c1;"></i><strong>Ventas Nequi 📱:</strong></td>
+                <td class="text-right font-weight-bold" style="color:#6f42c1;">$${formatearNumero(total_nequi)}</td>
+              </tr>`;
+          }
+          desglose += `
+              <tr class="table-active">
+                <td class="text-left"><strong>Total consolidado:</strong></td>
+                <td class="text-right font-weight-bold text-primary">$${formatearNumero(total_consolidado)}</td>
+              </tr>
+            </table>`;
+
+          if (total_nequi > 0) {
+            desglose += `<div class="alert alert-info mt-2 mb-0 py-2 text-left" style="font-size:0.85em;">
+              <i class="fas fa-info-circle mr-1"></i>
+              Recuerde verificar <strong>$${formatearNumero(total_nequi)}</strong> en su cuenta Nequi.
+            </div>`;
+          }
+
           Swal.fire({
             icon: 'success',
             title: '✓ Caja Cerrada',
-            html: `
-              <p>La caja se ha cerrado correctamente</p>
-              ${resultado.utilidad ? `<p class="text-success"><strong>Utilidad del día: $${formatearNumero(resultado.utilidad)}</strong></p>` : ''}
-            `,
-            timer: 3000,
-            showConfirmButton: true
+            html: `<p class="mb-1">La caja se ha cerrado correctamente.</p>${desglose}`,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#28a745'
           }).then(() => {
             cargar_caja_actual();
             cargar_historial_cajas();

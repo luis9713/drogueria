@@ -90,8 +90,8 @@ class Producto{
         else{
             $sql="UPDATE producto SET estado='I' where id_producto=:id";
             $query=$this->acceso->prepare($sql);
-            $query->execute(array(':id'=>$id));
-            if(!empty($query->execute(array(':id'=>$id)))){
+            $resultado = $query->execute(array(':id'=>$id));
+            if($resultado){
                 echo 'borrado';
             }
             else{
@@ -99,6 +99,43 @@ class Producto{
             }
         }
         
+    }
+    function descontinuar_sin_stock($id){
+        $sql="SELECT COALESCE(SUM(cantidad_lote), 0) AS total FROM lote WHERE id_producto=:id AND estado='A'";
+        $query=$this->acceso->prepare($sql);
+        $query->execute(array(':id'=>$id));
+        $stock=$query->fetch();
+
+        if(!$stock || (float)$stock->total > 0){
+            return 'error_stock';
+        }
+
+        $sql="UPDATE producto SET estado='I' WHERE id_producto=:id AND estado='A'";
+        $query=$this->acceso->prepare($sql);
+        $query->execute(array(':id'=>$id));
+        return $query->rowCount() === 1 ? 'descontinuado' : 'error_producto';
+    }
+    function buscar_inactivos($consulta=''){
+        $sql="SELECT p.id_producto, p.nombre, p.concentracion, p.adicional, p.precio,
+                     la.nombre AS laboratorio, t.nombre AS tipo, pre.nombre AS presentacion,
+                     p.avatar
+              FROM producto p
+              JOIN laboratorio la ON p.prod_lab=la.id_laboratorio
+              JOIN tipo_producto t ON p.prod_tip_prod=t.id_tip_prod
+              JOIN presentacion pre ON p.prod_present=pre.id_presentacion
+              WHERE p.estado='I' AND p.nombre LIKE :consulta
+              ORDER BY p.nombre
+              LIMIT 50";
+        $query=$this->acceso->prepare($sql);
+        $query->execute(array(':consulta'=>"%$consulta%"));
+        $this->objetos=$query->fetchall();
+        return $this->objetos;
+    }
+    function reactivar($id){
+        $sql="UPDATE producto SET estado='A' WHERE id_producto=:id AND estado='I'";
+        $query=$this->acceso->prepare($sql);
+        $query->execute(array(':id'=>$id));
+        return $query->rowCount() === 1 ? 'reactivado' : 'error_producto';
     }
     function obtener_stock($id){
         $sql="SELECT SUM(cantidad_lote) as total FROM lote where id_producto=:id and estado='A'";

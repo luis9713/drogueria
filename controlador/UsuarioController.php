@@ -2,6 +2,13 @@
 include_once '../modelo/Usuario.php';
 $usuario = new Usuario();
 session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $id_usuario= $_SESSION['usuario'];
 $tipo_usuario=$_SESSION['us_tipo'];
 if($_POST['funcion']=='buscar_usuario'){

@@ -6,6 +6,14 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $producto=new Producto();
 if($_POST['funcion']=='crear'){
     $nombre = $_POST['nombre'];
@@ -31,30 +39,68 @@ if($_POST['funcion']=='editar'){
 }
 if($_POST['funcion']=='buscar'){
     $producto->buscar();
+    $todos_productos = $producto->objetos;  // Guardar antes de sobrescribir
     $json=array();
-    foreach ($producto->objetos as $objeto) {
+    foreach ($todos_productos as $objeto) {
         $producto->obtener_stock($objeto->id_producto);
-        foreach ($producto->objetos as $obj) {
-            $total = $obj->total;
+        $total = 0;  // Default a 0 si no hay stock
+        if(!empty($producto->objetos)){
+            foreach ($producto->objetos as $obj) {
+                if($obj->total !== null){
+                    $total = $obj->total;
+                }
+            }
         }
-        // Solo agregar productos con stock disponible (mayor a 0 y no null)
-        if($total != null && $total > 0){
-            $json[]=array(
-                'id'=>$objeto->id_producto,
-                'nombre'=>$objeto->nombre,
-                'concentracion'=>$objeto->concentracion,
-                'adicional'=>$objeto->adicional,
-                'precio'=>$objeto->precio,
-                'stock'=>$total,
-                'laboratorio'=>$objeto->laboratorio,
-                'tipo'=>$objeto->tipo,
-                'presentacion'=>$objeto->presentacion,
-                'laboratorio_id'=>$objeto->prod_lab,
-                'tipo_id'=>$objeto->prod_tip_prod,
-                'presentacion_id'=>$objeto->prod_present,
-                'avatar'=>'../img/prod/'.$objeto->avatar,
-            );
+        // Mostrar TODOS los productos sin restricción de stock
+        $json[]=array(
+            'id'=>$objeto->id_producto,
+            'nombre'=>$objeto->nombre,
+            'concentracion'=>$objeto->concentracion,
+            'adicional'=>$objeto->adicional,
+            'precio'=>$objeto->precio,
+            'stock'=>$total,
+            'laboratorio'=>$objeto->laboratorio,
+            'tipo'=>$objeto->tipo,
+            'presentacion'=>$objeto->presentacion,
+            'laboratorio_id'=>$objeto->prod_lab,
+            'tipo_id'=>$objeto->prod_tip_prod,
+            'presentacion_id'=>$objeto->prod_present,
+            'avatar'=>'../img/prod/'.$objeto->avatar,
+        );
+    }
+    $jsonstring = json_encode($json);
+    echo $jsonstring;
+}
+if($_POST['funcion']=='buscar_gestion'){
+    $producto->buscar();
+    $todos_productos = $producto->objetos;  // Guardar antes de sobrescribir
+    $json=array();
+    foreach ($todos_productos as $objeto) {
+        $producto->obtener_stock($objeto->id_producto);
+        $total = 0;  // Default a 0 si no hay stock
+        if(!empty($producto->objetos)){
+            foreach ($producto->objetos as $obj) {
+                if($obj->total !== null){
+                    $total = $obj->total;
+                }
+            }
         }
+        // Mostrar TODOS los productos sin restricción de stock
+        $json[]=array(
+            'id'=>$objeto->id_producto,
+            'nombre'=>$objeto->nombre,
+            'concentracion'=>$objeto->concentracion,
+            'adicional'=>$objeto->adicional,
+            'precio'=>$objeto->precio,
+            'stock'=>$total,
+            'laboratorio'=>$objeto->laboratorio,
+            'tipo'=>$objeto->tipo,
+            'presentacion'=>$objeto->presentacion,
+            'laboratorio_id'=>$objeto->prod_lab,
+            'tipo_id'=>$objeto->prod_tip_prod,
+            'presentacion_id'=>$objeto->prod_present,
+            'avatar'=>'../img/prod/'.$objeto->avatar,
+        );
     }
     $jsonstring = json_encode($json);
     echo $jsonstring;
@@ -91,6 +137,19 @@ if($_POST['funcion']=='cambiar_avatar'){
 if($_POST['funcion']=='borrar'){
     $id=$_POST['id'];
     $producto->borrar($id);
+}
+if($_POST['funcion']=='descontinuar_sin_stock'){
+    $id=(int)$_POST['id'];
+    echo $producto->descontinuar_sin_stock($id);
+}
+if($_POST['funcion']=='buscar_inactivos'){
+    $consulta=isset($_POST['consulta']) ? trim($_POST['consulta']) : '';
+    $producto->buscar_inactivos($consulta);
+    echo json_encode($producto->objetos);
+}
+if($_POST['funcion']=='reactivar'){
+    $id=(int)$_POST['id'];
+    echo $producto->reactivar($id);
 }
 if($_POST['funcion']=='buscar_id'){
     $id=$_POST['id_producto'];

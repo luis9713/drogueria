@@ -43,22 +43,40 @@ $(document).ready(function () {
 
   $(document).on("click", "#credito_procesar_deposito", (e) => {
     añadir_deposito();
-    Swal.fire({
-      position: "center",
-      icon: "success",
-      title: "Se realizo el deposito",
-      showConfirmButton: false,
-      timer: 1500,
-    });
   });
+
+  function normalizarRespuesta(response) {
+    const texto = (response || "").toString().trim();
+    if (!texto) {
+      return { success: false, code: "respuesta_vacia" };
+    }
+    if (texto[0] === "{" || texto[0] === "[") {
+      try {
+        const json = JSON.parse(texto);
+        if (json && (json.success === true || json.estado === "success")) {
+          return { success: true, code: "success" };
+        }
+        if (json && json.code) {
+          return { success: false, code: json.code };
+        }
+      } catch (e) {
+        // Se mantiene compatibilidad con respuestas en texto plano.
+      }
+    }
+    if (texto === "success") {
+      return { success: true, code: "success" };
+    }
+    return { success: false, code: texto };
+  }
 
   function calcularTotal() {
     pago = $("#credito_pago").val();
+    const medio_pago = $("#credito_medio_pago").val();
 
     let total = parseFloat($("#credito_total").get(0).textContent.replace(/\./g, ''));
     let depositado = parseFloat($("#credito_depositado").get(0).textContent.replace(/\./g, ''));
     let saldo = total - depositado;
-    let vuelto = pago - saldo;
+    let vuelto = medio_pago === "Nequi" ? 0 : (pago - saldo);
 
     $("#credito_saldo").html(formatearNumero(saldo));
     $("#credito_vuelto").html(formatearNumero(vuelto));
@@ -69,17 +87,60 @@ $(document).ready(function () {
 
     let id = $("#credito_codigo_venta").get(0).textContent;
     let pago = parseFloat($("#credito_pago").val());
+    let medio_pago = $("#credito_medio_pago").val();
+
+    if (!pago || pago <= 0) {
+      Swal.fire({
+        icon: "error",
+        title: "Monto inválido",
+        text: "Ingresa un monto válido para el abono",
+      });
+      return;
+    }
 
     $.post(
       "../controlador/CompraController.php",
-      { funcion, id, pago },
+      { funcion, id, pago, medio_pago },
       (response) => {
-        console.log(response);
-      }
-    );
+        const resultado = normalizarRespuesta(response);
+        if (resultado.success) {
+          $('#vista_credito').modal('hide');
+          Swal.fire({
+            position: "center",
+            icon: "success",
+            title: "Se realizo el deposito",
+            showConfirmButton: false,
+            timer: 1500,
+          });
+          listar_creditos();
+          cargar_estadisticas();
+          return;
+        }
 
-    listar_creditos();
-    cargar_estadisticas();
+        let mensaje = "No se pudo registrar el deposito";
+        if (resultado.code === "error_monto") {
+          mensaje = "El monto debe ser mayor que 0";
+        } else if (resultado.code === "error_credito") {
+          mensaje = "No se encontro el credito seleccionado";
+        } else if (resultado.code === "ya_pagado") {
+          mensaje = "Este credito ya se encuentra pagado";
+        } else if (resultado.code === "error_caja_cerrada") {
+          mensaje = "Debe abrir caja para registrar abonos de crédito";
+        }
+
+        Swal.fire({
+          icon: "error",
+          title: "Operacion no completada",
+          text: mensaje,
+        });
+      }
+    ).fail(() => {
+      Swal.fire({
+        icon: "error",
+        title: "Error de comunicacion",
+        text: "No se pudo conectar con el servidor",
+      });
+    });
   }
 
   function listar_creditos() {
@@ -96,8 +157,18 @@ $(document).ready(function () {
         { data: "fecha" },
         { data: "cliente" },
         { data: "dni" },
-        { data: "depositado" },
-        { data: "total" },
+        { 
+          data: "depositado",
+          render: function(data) {
+            return formatearNumero(data);
+          }
+        },
+        { 
+          data: "total",
+          render: function(data) {
+            return formatearNumero(data);
+          }
+        },
         { data: "vendedor" },
         {
           defaultContent: `<button class="ver btn btn-success" type="button" data-toggle="modal" data-target="#vista_credito"><i class="fas fa-search"></i></button>
@@ -105,6 +176,7 @@ $(document).ready(function () {
         },
       ],
       destroy: true,
+      order: [[0, "desc"]],
       language: espanol,
     });
   }
@@ -146,7 +218,7 @@ $(document).ready(function () {
                 );
                 listar_creditos();
                 cargar_estadisticas();
-              } else if ((response = "nodelete")) {
+              } else if (response === "nodelete") {
                 swalWithBootstrapButtons.fire(
                   "No eliminado",
                   "No tienes prioridad para eliminar este credito",
@@ -179,6 +251,7 @@ $(document).ready(function () {
     
     // Limpiar el campo de pago
     $("#credito_pago").val("");
+    $("#credito_medio_pago").val("Efectivo");
     
     calcularTotal();
 
@@ -208,6 +281,10 @@ $(document).ready(function () {
         });
       }
     );
+  });
+
+  $(document).on("change", "#credito_medio_pago", function () {
+    calcularTotal();
   });
 });
 

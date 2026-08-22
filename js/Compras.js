@@ -1,4 +1,9 @@
 $(document).ready(function() {
+    // Función para formatear números con separador de miles
+    function formatearNumero(numero) {
+        return Math.round(numero).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    
     listar_compras();
     $('.select2').select2();
     rellenar_estado_pago();
@@ -33,7 +38,12 @@ $(document).ready(function() {
                     { "data": "codigo" },
                     { "data": "fecha_compra" },
                     { "data": "fecha_entrega" },
-                    { "data": "total" },
+                    { 
+                      "data": "total",
+                      "render": function(data) {
+                        return formatearNumero(data);
+                      }
+                    },
                     { "data": "estado" },
                     { "data": "proveedor" },
                     { "defaultContent": `<button class="imprimir btn btn-secondary"><i class="fas fa-print"></i></button>

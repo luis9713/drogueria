@@ -1,5 +1,13 @@
 <?php
 include '../modelo/Cliente.php';
+session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $cliente = new Cliente();
 if($_POST['funcion']=='buscar'){
     $cliente->buscar();

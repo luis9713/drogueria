@@ -35,7 +35,12 @@ $(document).ready(function () {
         { data: "fecha" },
         { data: "cliente" },
         { data: "dni" },
-        { data: "total" },
+        { 
+          data: "total",
+          render: function(data) {
+            return formatearNumero(data);
+          }
+        },
         { data: "vendedor" },
         { data: "tipo_pago" },
         {
@@ -45,6 +50,7 @@ $(document).ready(function () {
         },
       ],
       destroy: true,
+      order: [[0, "desc"]],
       language: espanol,
     });
   }
@@ -93,7 +99,7 @@ $(document).ready(function () {
                   "success"
                 );
                 listar_ventas();
-              } else if ((response = "nodelete")) {
+              } else if (response === "nodelete") {
                 swalWithBootstrapButtons.fire(
                   "No eliminado",
                   "No tienes prioridad para eliminar esta venta",

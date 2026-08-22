@@ -61,7 +61,7 @@ include_once 'layouts/nav.php';
             <div class="small-box bg-info">
               <div class="inner">
                 <h3 id="saldo-actual">$0</h3>
-                <p>Saldo Actual</p>
+                <p>Saldo Actual (General)</p>
               </div>
               <div class="icon">
                 <i class="fas fa-wallet"></i>
@@ -79,6 +79,30 @@ include_once 'layouts/nav.php';
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Fila Nequi -->
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <div class="small-box" style="background-color:#6f42c1; color:#fff;">
+              <div class="inner">
+                <h3 id="saldo-nequi">$0</h3>
+                <p>Saldo Nequi 📱</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <div class="alert alert-info mb-0" style="height:100%; display:flex; align-items:center;">
+              <i class="fas fa-info-circle mr-2"></i>
+              <span>El <strong>Saldo Nequi</strong> acumula ventas por Nequi y también movimientos manuales (ingreso/egreso) cuando selecciones la cuenta Nequi.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="display:none;"><!-- fila fantasma para cerrar la fila anterior correctamente -->
         </div>
 
         <!-- Botones de acción -->
@@ -146,6 +170,7 @@ include_once 'layouts/nav.php';
                       <th>#</th>
                       <th>Fecha</th>
                       <th>Tipo</th>
+                      <th>Cuenta</th>
                       <th>Concepto</th>
                       <th>Categoría</th>
                       <th>Monto</th>
@@ -196,6 +221,13 @@ include_once 'layouts/nav.php';
               </select>
             </div>
             <div class="form-group">
+              <label>Cuenta destino:</label>
+              <select class="form-control" id="cuenta_ingreso">
+                <option value="caja" selected>Caja General</option>
+                <option value="nequi">Nequi</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label>Descripción (opcional):</label>
               <textarea class="form-control" id="descripcion_ingreso" rows="2"></textarea>
             </div>
@@ -240,6 +272,13 @@ include_once 'layouts/nav.php';
                 <option value="Arriendo">Arriendo</option>
                 <option value="Nómina">Nómina</option>
                 <option value="Otro Egreso">Otro Egreso</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Cuenta origen:</label>
+              <select class="form-control" id="cuenta_egreso">
+                <option value="caja" selected>Caja General</option>
+                <option value="nequi">Nequi</option>
               </select>
             </div>
             <div class="form-group">
@@ -320,6 +359,55 @@ include_once 'layouts/nav.php';
     </div>
   </div>
 
+  <!-- Modal Editar Movimiento -->
+  <div class="modal fade" id="modalEditarMovimiento">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-info">
+          <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Editar Movimiento</h5>
+          <button type="button" class="close" data-dismiss="modal">
+            <span>&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="formEditarMovimiento">
+            <input type="hidden" id="id_movimiento_edit">
+            <div class="form-group">
+              <label>Concepto:</label>
+              <input type="text" class="form-control" id="concepto_edit" readonly>
+            </div>
+            <div class="form-group">
+              <label>Fecha:</label>
+              <input type="text" class="form-control" id="fecha_edit" readonly>
+            </div>
+            <div class="form-group">
+              <label>Tipo:</label>
+              <input type="text" class="form-control" id="tipo_edit" readonly>
+            </div>
+            <div class="form-group">
+              <label>Monto Actual:</label>
+              <input type="text" class="form-control" id="monto_actual_edit" readonly>
+            </div>
+            <div class="form-group">
+              <label>Monto Nuevo:</label>
+              <input type="number" class="form-control" id="monto_nuevo_edit" min="0" step="1000" required>
+            </div>
+            <div class="alert alert-warning">
+              <i class="fas fa-info-circle mr-2"></i>
+              <small>Se actualizarán automáticamente todos los saldos posteriores.</small>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-info" id="btnGuardarEdicion">
+            <i class="fas fa-save mr-1"></i>Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <?php
 include_once 'layouts/footer.php';
 }
@@ -327,4 +415,4 @@ else{
     header('Location: ../index.php');
 }
 ?>
-<script src="../js/Contabilidad.js"></script>
+<script src="../js/Contabilidad.js?v=<?php echo @filemtime('../js/Contabilidad.js'); ?>"></script>

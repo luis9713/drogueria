@@ -4,10 +4,17 @@ include_once '../modelo/Cliente.php';
 $cliente = new Cliente();
 $venta = new Venta();
 session_start();
+if(!isset($_SESSION['usuario'])){
+    echo json_encode(array('error' => 'no_sesion'));
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $id_usuario =  $_SESSION['usuario'];
 if($_POST['funcion']=='listar_creditos'){
     $venta->buscar_credito();
-    $json=array();
+    $json=array('data'=>array());
     foreach ($venta->objetos as $objeto) {
         if (empty($objeto->id_cliente)) {
             $cliente_nombre=$objeto->cliente;
@@ -26,10 +33,10 @@ if($_POST['funcion']=='listar_creditos'){
             'fecha'=>$objeto->fecha,
             'cliente'=>$cliente_nombre,
             'dni'=>$cliente_dni,
-            'total'=>number_format($objeto->total, 0, ',', '.'),
+            'total'=>(float)$objeto->total,
             'vendedor'=>$objeto->vendedor,
             'tipo_pago'=>$objeto->tipo_pago,
-            'depositado'=>number_format($objeto->depositado, 0, ',', '.')
+            'depositado'=>(float)$objeto->depositado
         );
     }
     $jsonstring = json_encode($json);
@@ -37,7 +44,7 @@ if($_POST['funcion']=='listar_creditos'){
 }
 if($_POST['funcion']=='listar_contado'){
     $venta->buscar_contado();
-    $json=array();
+    $json=array('data'=>array());
     foreach ($venta->objetos as $objeto) {
         if (empty($objeto->id_cliente)) {
             $cliente_nombre=$objeto->cliente;
@@ -56,7 +63,7 @@ if($_POST['funcion']=='listar_contado'){
             'fecha'=>$objeto->fecha,
             'cliente'=>$cliente_nombre,
             'dni'=>$cliente_dni,
-            'total'=>number_format($objeto->total, 0, ',', '.'),
+            'total'=>(float)$objeto->total,
             'vendedor'=>$objeto->vendedor,
             'tipo_pago'=>$objeto->tipo_pago
         );
@@ -66,7 +73,7 @@ if($_POST['funcion']=='listar_contado'){
 }
 if($_POST['funcion']=='listar'){
     $venta->buscar();
-    $json=array();
+    $json=array('data'=>array());
     foreach ($venta->objetos as $objeto) {
         if (empty($objeto->id_cliente)) {
             $cliente_nombre=$objeto->cliente;
@@ -85,7 +92,7 @@ if($_POST['funcion']=='listar'){
             'fecha'=>$objeto->fecha,
             'cliente'=>$cliente_nombre,
             'dni'=>$cliente_dni,
-            'total'=>number_format($objeto->total, 0, ',', '.'),
+            'total'=>(float)$objeto->total,
             'vendedor'=>$objeto->vendedor,
             'tipo_pago'=>$objeto->tipo_pago
         );
@@ -94,36 +101,41 @@ if($_POST['funcion']=='listar'){
     echo $jsonstring;
 }
 if($_POST['funcion']=='monstrar_consultas'){
+    $venta_dia_vendedor = 0;
+    $venta_diaria = 0;
+    $venta_mensual = 0;
+    $monto_costo = 0;
+    $venta_anual = 0;
+
     $venta->venta_dia_vendedor($id_usuario);
     foreach ($venta->objetos as $objeto) {
-        $venta_dia_vendedor=$objeto->venta_dia_vendedor;
+        $venta_dia_vendedor=(float)$objeto->venta_dia_vendedor;
     }
     $venta->venta_diaria();
     foreach ($venta->objetos as $objeto) {
-        $venta_diaria=$objeto->venta_diaria;
+        $venta_diaria=(float)$objeto->venta_diaria;
     }
     $venta->venta_mensual();
     foreach ($venta->objetos as $objeto) {
-        $venta_mensual=$objeto->venta_mensual;
+        $venta_mensual=(float)$objeto->venta_mensual;
     }
     $venta->monto_costo();
-    $monto_costo='';
     foreach ($venta->objetos as $objeto) {
-        $monto_costo=$objeto->monto_costo;
+        $monto_costo=(float)$objeto->monto_costo;
     }
 
     $venta->venta_anual();
-    $json=array();
     foreach ($venta->objetos as $objeto) {
-        $json[]= array(
-            'venta_dia_vendedor'=>$venta_dia_vendedor,
-            'venta_diaria'=>$venta_diaria,
-            'venta_mensual'=>$venta_mensual,
-            'venta_anual'=>$objeto->venta_anual,
-            'ganancia_mensual'=>$venta_mensual - $monto_costo
-        );
+        $venta_anual=(float)$objeto->venta_anual;
     }
-    $jsonstring = json_encode($json[0]);
+    $json = array(
+        'venta_dia_vendedor'=>$venta_dia_vendedor,
+        'venta_diaria'=>$venta_diaria,
+        'venta_mensual'=>$venta_mensual,
+        'venta_anual'=>$venta_anual,
+        'ganancia_mensual'=>$venta_mensual - $monto_costo
+    );
+    $jsonstring = json_encode($json);
     echo $jsonstring;
 }
 if($_POST['funcion']=='venta_mes'){
@@ -173,15 +185,20 @@ if($_POST['funcion']=='cliente_mes'){
 }
 if($_POST['funcion']=='estadisticas_creditos'){
     $venta->estadisticas_creditos();
-    $json=array();
+    $json=array(
+        'total_creditos'=>0,
+        'monto_total_creditos'=>0,
+        'monto_depositado'=>0,
+        'saldo_por_cobrar'=>0
+    );
     foreach ($venta->objetos as $objeto) {
-        $json[]=array(
-            'total_creditos'=>$objeto->total_creditos,
-            'monto_total_creditos'=>$objeto->monto_total_creditos,
-            'monto_depositado'=>$objeto->monto_depositado,
-            'saldo_por_cobrar'=>$objeto->saldo_por_cobrar
+        $json=array(
+            'total_creditos'=>(int)$objeto->total_creditos,
+            'monto_total_creditos'=>(float)$objeto->monto_total_creditos,
+            'monto_depositado'=>(float)$objeto->monto_depositado,
+            'saldo_por_cobrar'=>(float)$objeto->saldo_por_cobrar
         );
     }
-    $jsonstring = json_encode($json[0]);
+    $jsonstring = json_encode($json);
     echo $jsonstring;
 }

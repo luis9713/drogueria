@@ -9,8 +9,11 @@ class Compras{
     function crear($codigo,$fecha_compra,$fecha_entrega,$total,$id_estado,$id_proveedor){
         $sql="INSERT INTO compra(codigo,fecha_compra,fecha_entrega,total,id_estado_pago,id_proveedor) values (:codigo,:fecha_compra,:fecha_entrega,:total,:id_estado_pago,:id_proveedor);";
             $query = $this->acceso->prepare($sql);
-            $query->execute(array(':codigo'=>$codigo,':fecha_compra'=>$fecha_compra,':fecha_entrega'=>$fecha_entrega,':total'=>$total,':id_estado_pago'=>$id_estado,':id_proveedor'=>$id_proveedor));
+            return $query->execute(array(':codigo'=>$codigo,':fecha_compra'=>$fecha_compra,':fecha_entrega'=>$fecha_entrega,':total'=>$total,':id_estado_pago'=>$id_estado,':id_proveedor'=>$id_proveedor));
        
+    }
+    function obtener_ultimo_id_insertado(){
+        return $this->acceso->lastInsertId();
     }
     function ultima_compra(){
         $sql="SELECT MAX(id) as ultima_compra FROM compra";

@@ -11,6 +11,10 @@ class Usuario{
         $query = $this->acceso->prepare($sql);
         $query->execute(array(':dni' => $dni));
         $objetos = $query->fetchAll();
+        if(empty($objetos)){
+            return "nologueado";
+        }
+        $contrasena_actual = '';
         foreach ($objetos as $objeto) {
             $contrasena_actual = $objeto->contrasena_us;
         }
@@ -28,6 +32,7 @@ class Usuario{
             }
             
         }
+        return "nologueado";
     }
     function obtener_dato_logueo($dni){
         $sql="SELECT * FROM usuario join tipo_us on us_tipo=id_tipo_us and dni_us=:dni";

@@ -6,10 +6,17 @@ class Venta{
         $db= new Conexion();
         $this->acceso=$db->pdo;
     }
-    function Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago,$id_caja=null){
-        $sql="INSERT INTO venta(fecha,total,vendedor,id_cliente,tipo_pago,depositado,id_caja) values(:fecha,:total,:vendedor,:cliente,:tipo_pago,:pago,:id_caja)";
-        $query = $this->acceso->prepare($sql);
-        $query->execute(array(':fecha'=>$fecha,':cliente'=>$cliente,':total'=>$total,':vendedor'=>$vendedor, ':tipo_pago'=>$tipo_pago, ':pago'=>$pago, ':id_caja'=>$id_caja));
+    function Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago,$id_caja=null,$medio_pago='Efectivo'){
+        try {
+            $sql="INSERT INTO venta(fecha,total,vendedor,id_cliente,tipo_pago,depositado,id_caja,medio_pago) values(:fecha,:total,:vendedor,:cliente,:tipo_pago,:pago,:id_caja,:medio_pago)";
+            $query = $this->acceso->prepare($sql);
+            $query->execute(array(':fecha'=>$fecha,':cliente'=>$cliente,':total'=>$total,':vendedor'=>$vendedor, ':tipo_pago'=>$tipo_pago, ':pago'=>$pago, ':id_caja'=>$id_caja, ':medio_pago'=>$medio_pago));
+        } catch (Exception $e) {
+            // Compatibilidad con esquemas antiguos sin columna medio_pago
+            $sql="INSERT INTO venta(fecha,total,vendedor,id_cliente,tipo_pago,depositado,id_caja) values(:fecha,:total,:vendedor,:cliente,:tipo_pago,:pago,:id_caja)";
+            $query = $this->acceso->prepare($sql);
+            $query->execute(array(':fecha'=>$fecha,':cliente'=>$cliente,':total'=>$total,':vendedor'=>$vendedor, ':tipo_pago'=>$tipo_pago, ':pago'=>$pago, ':id_caja'=>$id_caja));
+        }
     }
     function Depositar($id,$depositado,$tipo_pago){
         $sql="UPDATE venta SET depositado=:depositado, tipo_pago=:tipo_pago where id_venta=:id";
@@ -35,21 +42,21 @@ class Venta{
         echo 'delete';
     }
     function buscar(){
-        $sql="SELECT id_venta,fecha,cliente,dni,total, CONCAT(usuario.nombre_us,' ',usuario.apellidos_us) as vendedor,id_cliente,tipo_pago FROM venta join usuario on vendedor=id_usuario WHERE NOT tipo_pago='Credito' and NOT tipo_pago='Credito_Pagado'";
+        $sql="SELECT id_venta,fecha,cliente,dni,total, CONCAT(usuario.nombre_us,' ',usuario.apellidos_us) as vendedor,id_cliente,tipo_pago FROM venta join usuario on vendedor=id_usuario WHERE NOT tipo_pago='Credito' and NOT tipo_pago='Credito_Pagado' ORDER BY id_venta DESC";
         $query = $this->acceso->prepare($sql);
         $query->execute();
         $this->objetos=$query->fetchall();
         return $this->objetos;
     }
     function buscar_credito(){
-        $sql="SELECT id_venta,fecha,cliente,dni,total, CONCAT(usuario.nombre_us,' ',usuario.apellidos_us) as vendedor,id_cliente,tipo_pago,depositado FROM venta join usuario on vendedor=id_usuario WHERE tipo_pago='Credito'";
+        $sql="SELECT id_venta,fecha,cliente,dni,total, CONCAT(usuario.nombre_us,' ',usuario.apellidos_us) as vendedor,id_cliente,tipo_pago,depositado FROM venta join usuario on vendedor=id_usuario WHERE tipo_pago='Credito' ORDER BY id_venta DESC";
         $query = $this->acceso->prepare($sql);
         $query->execute();
         $this->objetos=$query->fetchall();
         return $this->objetos;
     }
     function buscar_contado(){
-        $sql="SELECT id_venta,fecha,cliente,dni,total, CONCAT(usuario.nombre_us,' ',usuario.apellidos_us) as vendedor,id_cliente,tipo_pago FROM venta join usuario on vendedor=id_usuario WHERE NOT tipo_pago='Credito'";
+        $sql="SELECT id_venta,fecha,cliente,dni,total, CONCAT(usuario.nombre_us,' ',usuario.apellidos_us) as vendedor,id_cliente,tipo_pago FROM venta join usuario on vendedor=id_usuario WHERE NOT tipo_pago='Credito' ORDER BY id_venta DESC";
         $query = $this->acceso->prepare($sql);
         $query->execute();
         $this->objetos=$query->fetchall();
@@ -82,13 +89,22 @@ class Venta{
         return $this->objetos;
     }
     function venta_diaria(){
-        $sql="SELECT SUM(total) as venta_diaria FROM `venta` WHERE  date(fecha)= date(curdate()) and NOT tipo_pago='Credito' and NOT tipo_pago='Credito_Pagado'";
+        // Incluye Nequi en el total diario
+        $sql="SELECT SUM(total) as venta_diaria FROM `venta` WHERE date(fecha)= date(curdate()) and NOT tipo_pago='Credito' and NOT tipo_pago='Credito_Pagado'";
+        $query = $this->acceso->prepare($sql);
+        $query->execute();
+        $this->objetos=$query->fetchall();
+        return $this->objetos;
+    }
+    function venta_diaria_nequi(){
+        $sql="SELECT SUM(total) as venta_diaria_nequi FROM `venta` WHERE date(fecha)= date(curdate()) and tipo_pago='Nequi'";
         $query = $this->acceso->prepare($sql);
         $query->execute();
         $this->objetos=$query->fetchall();
         return $this->objetos;
     }
     function venta_mensual(){
+        // Incluye Nequi en el total mensual
         $sql="SELECT SUM(total) as venta_mensual FROM `venta` WHERE year(fecha)= year(curdate()) and month(fecha) = month(curdate()) and NOT tipo_pago='Credito' and NOT tipo_pago='Credito_Pagado'";
         $query = $this->acceso->prepare($sql);
         $query->execute();
@@ -96,6 +112,7 @@ class Venta{
         return $this->objetos;
     }
     function venta_anual(){
+        // Incluye Nequi en el total anual
         $sql="SELECT SUM(total) as venta_anual FROM `venta` WHERE year(fecha)= year(curdate()) and NOT tipo_pago='Credito' and NOT tipo_pago='Credito_Pagado'";
         $query = $this->acceso->prepare($sql);
         $query->execute();
@@ -217,6 +234,14 @@ class Venta{
         }
         
         $this->objetos = $query->fetchall();
+        return $this->objetos;
+    }
+    
+    function buscar_por_id($id_venta){
+        $sql="SELECT id_venta,fecha,cliente,dni,total,tipo_pago FROM venta WHERE id_venta=:id_venta";
+        $query = $this->acceso->prepare($sql);
+        $query->execute(array(':id_venta'=>$id_venta));
+        $this->objetos=$query->fetchall();
         return $this->objetos;
     }
     

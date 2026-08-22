@@ -93,9 +93,15 @@ include_once 'layouts/nav.php';
                       <div class="info-box-content">
                           <span class="info-box-text text-left ">DEPOSITO</span>
                           <input type="number" id="credito_pago" min="1" placeholder="Ingresa Dinero" class="form-control">
-                         
                       </div>
                   </div>
+                  <div class="form-group">
+                    <label for="credito_medio_pago">Medio de pago del abono:</label>
+                    <select id="credito_medio_pago" class="form-control">
+                      <option value="Efectivo" selected>Efectivo</option>
+                      <option value="Nequi">Nequi</option>
+                    </select>
+                      </div>
                   <div class="info-box mb-3 bg-info">
                       <span class="info-box-icon"><i class="fas fa-money-bill-wave"></i></span>
                       <div class="info-box-content">
@@ -107,7 +113,7 @@ include_once 'layouts/nav.php';
               
                 <button type="button" data-dismiss="modal" class="btn btn-outline-secondary float-right m-1">Cerrar</button>
                 
-                <button type="button" id="credito_procesar_deposito" data-dismiss="modal" class="btn btn-success float-right m-1">Añadir</button>
+                <button type="button" id="credito_procesar_deposito" class="btn btn-success float-right m-1">Añadir</button>
                
             </div>
         </div>

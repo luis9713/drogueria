@@ -15,8 +15,6 @@
 <script src="../js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE App -->
 <script src="../js/adminlte.min.js"></script>
-<!-- AdminLTE for demo purposes -->
-<script src="../js/demo.js"></script>
 <!-- SweetAlert2 -->
 <script src="../js/sweetalert2.js"></script>
 <!-- select2 -->
@@ -42,6 +40,7 @@
       $('#gestion_lote').hide();
       $('#gestion_usuario').hide();
       $('#gestion_producto').hide();
+      $('#gestion_producto_inactivo').hide();
       $('#gestion_atributo').hide();
       $('#gestion_proveedor').hide();
       $('#gestion_almacen').hide();

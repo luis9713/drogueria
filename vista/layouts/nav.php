@@ -169,11 +169,19 @@
           </li>
           <li class="nav-header">⚠️ Alertas</li>
           <li class="nav-item">
-            <a href="adm_alertas_inventario.php" class="nav-link">
-              <i class="nav-icon fas fa-exclamation-triangle text-warning"></i>
+            <a href="adm_alertas_stock.php" class="nav-link">
+              <i class="nav-icon fas fa-boxes text-danger"></i>
               <p>
-                Alertas de Inventario
+                Alertas Stock Bajo
                 <span id="badge-alertas-total" class="right badge badge-warning"></span>
+              </p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="adm_alertas_vencimientos.php" class="nav-link">
+              <i class="nav-icon fas fa-calendar-times text-warning"></i>
+              <p>
+                Alertas Vencimientos
               </p>
             </a>
           </li>
@@ -183,6 +191,14 @@
               <i class="nav-icon fas fa-pills"></i>
               <p>
                 Gestion producto
+              </p>
+            </a>
+          </li>
+          <li id="gestion_producto_inactivo" class="nav-item">
+            <a href="adm_productos_inactivos.php" class="nav-link">
+              <i class="nav-icon fas fa-ban"></i>
+              <p>
+                Productos inactivos
               </p>
             </a>
           </li>
@@ -199,6 +215,15 @@
               <i class="nav-icon fas fa-cubes"></i>
               <p>
                 Gestion lote
+              </p>
+            </a>
+          </li>
+          <li class="nav-header">📝 Notas</li>
+          <li class="nav-item">
+            <a href="adm_notas.php" class="nav-link">
+              <i class="nav-icon fas fa-sticky-note text-warning"></i>
+              <p>
+                Mis Notas
               </p>
             </a>
           </li>

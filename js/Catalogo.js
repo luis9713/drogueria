@@ -10,12 +10,12 @@ $(document).ready(function() {
     
     function buscar_producto(consulta) {
         funcion = "buscar";
-        $.post('../controlador/ProductoController.php', { consulta, funcion }, (response) => {
+      $.post('../controlador/ProductoController.php', { consulta, funcion }, (response) => {
             //console.log(response);
             const productos = JSON.parse(response);
             let template = '';
-            console.log(productos);
-            productos.forEach(producto => {
+        console.log(productos);
+        productos.forEach(producto => {
                 template += `
                 <div prodId="${producto.id}" prodStock="${producto.stock}" prodNombre="${producto.nombre}"prodPrecio="${producto.precio}"prodConcentracion="${producto.concentracion}"prodAdicional="${producto.adicional}"prodLaboratorio="${producto.laboratorio_id}"prodTipo="${producto.tipo_id}"prodPresentacion="${producto.presentacion_id}"prodAvatar="${producto.avatar}"class="col-12 col-sm-6 col-md-4 d-flex align-items-stretch">
                 <div class="card bg-light">
@@ -55,6 +55,14 @@ $(document).ready(function() {
               </div>
                 `;
             });
+            if (template === '') {
+                template = `
+                <div class="col-12">
+                  <div class="alert alert-info text-center mb-0">
+                    No hay productos con stock disponible para la venta.
+                  </div>
+                </div>`;
+            }
             $('#productos').html(template);
         });
     }

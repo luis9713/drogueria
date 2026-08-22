@@ -60,6 +60,8 @@ include_once 'layouts/nav.php';
                                                 <select  id="tipo_pago" class="form-control select2" style="width: 100%">
                                                     <option value="Contado" >Contado</option>
                                                     <option value="Credito" >Credito</option>
+                                                    <option value="Nequi" >Nequi</option>
+                                                    <option value="Mixto" >Mixto (Efectivo + Nequi)</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -161,6 +163,22 @@ include_once 'layouts/nav.php';
                                                         <span class="info-box-text text-left ">INGRESO</span>
                                                         <input type="number" id="pago" min="1" placeholder="Ingresa Dinero" class="form-control">
                                                        
+                                                    </div>
+                                                </div>
+                                                <div id="bloque-mixto" style="display:none;">
+                                                    <div class="info-box mb-3" style="background-color:#17a2b8; color:#fff;">
+                                                        <span class="info-box-icon"><i class="fas fa-money-bill-wave"></i></span>
+                                                        <div class="info-box-content">
+                                                            <span class="info-box-text text-left ">PAGO EFECTIVO</span>
+                                                            <input type="number" id="pago_efectivo" min="0" placeholder="Efectivo" class="form-control">
+                                                        </div>
+                                                    </div>
+                                                    <div class="info-box mb-3" style="background-color:#6f42c1; color:#fff;">
+                                                        <span class="info-box-icon"><i class="fas fa-mobile-alt"></i></span>
+                                                        <div class="info-box-content">
+                                                            <span class="info-box-text text-left ">PAGO NEQUI</span>
+                                                            <input type="number" id="pago_nequi" min="0" placeholder="Nequi" class="form-control">
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="info-box mb-3 bg-info">

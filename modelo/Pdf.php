@@ -8,7 +8,18 @@ function getHtml($id_venta){
     $venta_producto=new VentaProducto();
     $cliente = new Cliente();
     $venta->buscar_id($id_venta);
-    $venta_producto->ver($id_venta);
+    
+    // Verificar si es un depósito y obtener la venta original
+    $id_venta_original = $id_venta;
+    foreach ($venta->objetos as $objeto) {
+        // Si es un depósito, extraer el ID de la venta original
+        if(strpos($objeto->tipo_pago, 'Deposito_') === 0) {
+            $id_venta_original = str_replace('Deposito_', '', $objeto->tipo_pago);
+        }
+    }
+    
+    // Ver los productos de la venta (original o la misma si no es depósito)
+    $venta_producto->ver($id_venta_original);
     $plantilla='
     <body>
     <header class="clearfix">

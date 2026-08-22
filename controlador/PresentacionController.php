@@ -1,5 +1,13 @@
 <?php 
 include '../modelo/Presentacion.php';
+session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $presentacion=new Presentacion();
 if($_POST['funcion']=='crear'){
     $nombre = $_POST['nombre_presentacion'];

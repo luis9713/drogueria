@@ -5,6 +5,20 @@ $(document).ready(function() {
     rellenar_proveedores();
     var prods = [];
 
+    function mostrarErrorProducto(mensaje) {
+        $('#error').text(mensaje);
+        $('#noadd-prod').hide('slow');
+        $('#noadd-prod').show(1000);
+        $('#noadd-prod').hide(2000);
+    }
+
+    function mostrarErrorCompra(mensaje) {
+        $('#error-compra').text(mensaje);
+        $('#noadd-compra').hide('slow');
+        $('#noadd-compra').show(1000);
+        $('#noadd-compra').hide(2000);
+    }
+
     function rellenar_productos() {
         funcion = 'rellenar_productos';
         $.post('../controlador/ProductoController.php', { funcion }, (response) => {
@@ -56,47 +70,51 @@ $(document).ready(function() {
         })
     }
     $(document).on('click', '.agregar-producto', (e) => {
+        e.preventDefault();
         let producto_select2 = $('#producto').val();
         let codigo_lote = $('#codigo_lote').val();
-        let cantidad = $('#cantidad').val();
+        let cantidad = parseFloat($('#cantidad').val());
         let vencimiento = $('#vencimiento').val();
-        let precio_compra = $('#precio_compra').val();
+        let precio_compra = parseFloat($('#precio_compra').val());
 
         if (producto_select2 == null) {
-            $('#error').text('Elija un producto!');
-            $('#noadd-prod').hide('slow');
-            $('#noadd-prod').show(1000);
-            $('#noadd-prod').hide(2000);
+            mostrarErrorProducto('Elija un producto!');
         } else {
-            if (codigo_lote == '') {
-                $('#error').text('Ingrese un codigo!');
-                $('#noadd-prod').hide('slow');
-                $('#noadd-prod').show(1000);
-                $('#noadd-prod').hide(2000);
+            if (codigo_lote.trim() == '') {
+                mostrarErrorProducto('Ingrese un codigo!');
             } else {
-                if (cantidad == '') {
-                    $('#error').text('Ingrese una cantidad!');
-                    $('#noadd-prod').hide('slow');
-                    $('#noadd-prod').show(1000);
-                    $('#noadd-prod').hide(2000);
+                if (!cantidad || cantidad <= 0) {
+                    mostrarErrorProducto('Ingrese una cantidad valida mayor a 0!');
                 } else {
                     if (vencimiento == '') {
-                        $('#error').text('Ingrese una fecha de vencimiento!');
-                        $('#noadd-prod').hide('slow');
-                        $('#noadd-prod').show(1000);
-                        $('#noadd-prod').hide(2000);
+                        mostrarErrorProducto('Ingrese una fecha de vencimiento!');
                     } else {
-                        if (precio_compra == '') {
-                            $('#error').text('Ingrese un precio de compra!');
-                            $('#noadd-prod').hide('slow');
-                            $('#noadd-prod').show(1000);
-                            $('#noadd-prod').hide(2000);
+                        if (!precio_compra || precio_compra <= 0) {
+                            mostrarErrorProducto('Ingrese un precio de compra valido mayor a 0!');
                         } else {
+                            let fechaCompra = $('#fecha_compra').val();
+                            if (fechaCompra && vencimiento < fechaCompra) {
+                                mostrarErrorProducto('El vencimiento no puede ser menor que la fecha de compra!');
+                                return;
+                            }
+
                             let producto_array = producto_select2.split(' | ');
+                            let id_producto = parseInt((producto_array['0'] || '').trim(), 10);
+                            if (!id_producto || id_producto <= 0) {
+                                mostrarErrorProducto('Producto invalido, recargue la pagina e intente de nuevo.');
+                                return;
+                            }
+
+                            let existe = prods.some(prod => prod.id == id_producto && prod.codigo === codigo_lote.trim());
+                            if (existe) {
+                                mostrarErrorProducto('Ya agrego ese lote para este producto.');
+                                return;
+                            }
+
                             let producto = {
-                                id: producto_array['0'],
+                                id: id_producto,
                                 nombre: producto_select2,
-                                codigo: codigo_lote,
+                                codigo: codigo_lote.trim(),
                                 cantidad: cantidad,
                                 vencimiento: vencimiento,
                                 precio_compra: precio_compra
@@ -131,60 +149,46 @@ $(document).ready(function() {
 
     })
     $(document).on('click', '.borrar-producto', (e) => {
-
-        let elemento = $(this)[0].activeElement.parentElement.parentElement;
+        e.preventDefault();
+        let elemento = $(e.currentTarget).closest('tr');
         let id = $(elemento).attr('prodId');
         prods.forEach(function(prod, index) {
             if (prod.id == id) {
                 prods.splice(index, 1);
             }
         })
-        elemento.remove();
+        $(elemento).remove();
     })
     $(document).on('click', '.crear-compra', (e) => {
+        e.preventDefault();
         let codigo = $('#codigo').val();
         let fecha_compra = $('#fecha_compra').val();
         let fecha_entrega = $('#fecha_entrega').val();
-        let total = $('#total').val();
+        let total = parseFloat($('#total').val());
         let estado = $('#estado').val();
         let proveedor = $('#proveedor').val();
-        if (codigo == '') {
-            $('#error-compra').text('Ingrese un codigo!');
-            $('#noadd-compra').hide('slow');
-            $('#noadd-compra').show(1000);
-            $('#noadd-compra').hide(2000);
+        if (codigo.trim() == '') {
+            mostrarErrorCompra('Ingrese un codigo!');
         } else {
             if (fecha_compra == '') {
-                $('#error-compra').text('Ingrese una fecha de compra!');
-                $('#noadd-compra').hide('slow');
-                $('#noadd-compra').show(1000);
-                $('#noadd-compra').hide(2000);
+                mostrarErrorCompra('Ingrese una fecha de compra!');
             } else {
                 if (fecha_entrega == '') {
-                    $('#error-compra').text('Ingrese una fecha de entrega!');
-                    $('#noadd-compra').hide('slow');
-                    $('#noadd-compra').show(1000);
-                    $('#noadd-compra').hide(2000);
+                    mostrarErrorCompra('Ingrese una fecha de entrega!');
                 } else {
-                    if (total == '') {
-                        $('#error-compra').text('Ingrese un total!');
-                        $('#noadd-compra').hide('slow');
-                        $('#noadd-compra').show(1000);
-                        $('#noadd-compra').hide(2000);
+                    if (fecha_entrega < fecha_compra) {
+                        mostrarErrorCompra('La fecha de entrega no puede ser menor a la fecha de compra!');
                     } else {
+                        if (!total || total <= 0) {
+                            mostrarErrorCompra('Ingrese un total valido mayor a 0!');
+                        } else {
                         if (estado == null) {
-                            $('#error-compra').text('Ingrese un estado!');
-                            $('#noadd-compra').hide('slow');
-                            $('#noadd-compra').show(1000);
-                            $('#noadd-compra').hide(2000);
+                            mostrarErrorCompra('Ingrese un estado!');
                         } else {
                             if (proveedor == null) {
-                                $('#error-compra').text('Ingrese un proveedor!');
-                                $('#noadd-compra').hide('slow');
-                                $('#noadd-compra').show(1000);
-                                $('#noadd-compra').hide(2000);
+                                mostrarErrorCompra('Ingrese un proveedor!');
                             } else {
-                                if (prods == '') {
+                                if (prods.length === 0) {
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'Oops...',
@@ -204,7 +208,8 @@ $(document).ready(function() {
                                     let productosString = JSON.stringify(prods);
                                     let descripcionString = JSON.stringify(descripcion);
                                     $.post('../controlador/ComprasController.php', { funcion, productosString, descripcionString }, (response) => {
-                                            if (response = 'add') {
+                                            const res = (response || '').trim();
+                                            if (res === 'add') {
                                                 Swal.fire({
                                                     position: 'center',
                                                     icon: 'success',
@@ -216,13 +221,28 @@ $(document).ready(function() {
                                                     location.href = '../vista/adm_compras.php'
                                                 })
                                             } else {
+                                                let mensaje = 'Error en el servidor!';
+                                                if (res === 'error_datos' || res === 'error_validacion') {
+                                                    mensaje = 'Revise los datos generales de la compra.';
+                                                } else if (res === 'error_producto') {
+                                                    mensaje = 'Hay un producto/lote con datos invalidos.';
+                                                } else if (res === 'error_lote') {
+                                                    mensaje = 'No se pudo guardar uno de los lotes.';
+                                                }
                                                 Swal.fire({
                                                     icon: 'error',
                                                     title: 'Oops...',
-                                                    text: 'Error en el servidor!',
+                                                    text: mensaje,
 
                                                 })
                                             }
+                                        })
+                                        .fail(() => {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Error de comunicacion',
+                                                text: 'No se pudo conectar con el servidor.'
+                                            })
                                         })
                                         /*
                                         Swal.fire({
@@ -237,6 +257,7 @@ $(document).ready(function() {
                                         })*/
                                 }
                             }
+                        }
                         }
                     }
                 }

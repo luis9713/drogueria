@@ -1,4 +1,12 @@
 $(document).ready(function () {
+  function parsearJSONSeguro(response) {
+    try {
+      return JSON.parse(response);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Verificar estado de caja para mostrar badge en navbar
   verificar_estado_caja_navbar();
   
@@ -154,12 +162,11 @@ $(document).ready(function () {
   function mostrar_info_caja(datos) {
     let funcion = "obtener_caja_actual";
     $.post("../controlador/CajaController.php", { funcion }, (response) => {
-      const caja = JSON.parse(response);
-      
-      if (caja.error) {
+      const caja = parsearJSONSeguro(response);
+      if (!caja || caja.error) {
         return;
       }
-
+      
       const fecha_apertura = new Date(caja.fecha_apertura);
       const hora_apertura = fecha_apertura.toLocaleTimeString('es-CO', { 
         hour: '2-digit', 
@@ -217,6 +224,8 @@ $(document).ready(function () {
       } else {
         $('body').append(badge_html);
       }
+    }).fail(function() {
+      // No interrumpir flujo de usuario por error temporal de red.
     });
   }
 
@@ -229,7 +238,15 @@ $(document).ready(function () {
   function mostrar_modal_cierre_caja() {
     let funcion = "obtener_caja_actual";
     $.post("../controlador/CajaController.php", { funcion }, (response) => {
-      const caja = JSON.parse(response);
+      const caja = parsearJSONSeguro(response);
+      if (!caja || caja.error) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin caja activa',
+          text: 'No se pudo obtener la caja actual para cerrar.'
+        });
+        return;
+      }
       
       const efectivo_esperado = parseFloat(caja.monto_inicial) + 
                                parseFloat(caja.total_ventas_contado) + 
@@ -307,6 +324,12 @@ $(document).ready(function () {
           cerrar_caja(result.value || result);
         }
       });
+    }).fail(function() {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo consultar la caja actual.'
+      });
     });
   }
 
@@ -321,7 +344,15 @@ $(document).ready(function () {
         observaciones: datos.observaciones
       }, 
       (response) => {
-        const resultado = JSON.parse(response);
+        const resultado = parsearJSONSeguro(response);
+        if (!resultado) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Respuesta inválida del servidor al cerrar caja'
+          });
+          return;
+        }
         
         if (resultado.success) {
           const diferencia = datos.diferencia;
@@ -348,7 +379,13 @@ $(document).ready(function () {
           });
         }
       }
-    );
+    ).fail(function() {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo cerrar la caja por un problema de red'
+      });
+    });
   }
 
   // Actualizar info cada 30 segundos si hay caja abierta
@@ -356,10 +393,15 @@ $(document).ready(function () {
     if ($('#info-caja-badge').length) {
       let funcion = "verificar_caja_abierta";
       $.post("../controlador/CajaController.php", { funcion }, (response) => {
-        const resultado = JSON.parse(response);
+        const resultado = parsearJSONSeguro(response);
+        if (!resultado) {
+          return;
+        }
         if (resultado.estado === 'abierta') {
           mostrar_info_caja(resultado.datos);
         }
+      }).fail(function() {
+        // Error temporal, reintenta en el próximo intervalo.
       });
     }
   }, 30000);

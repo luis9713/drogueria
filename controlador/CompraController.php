@@ -5,6 +5,13 @@ include_once '../modelo/Conexion.php';
 $venta = new Venta();
 $caja = new Caja();
 session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $vendedor = $_SESSION['usuario'];
 
 // Obtener id de caja abierta
@@ -14,17 +21,43 @@ if (!empty($caja_abierta)) {
     $id_caja = $caja_abierta[0]->id_caja;
 }
 if($_POST['funcion']=='depositar'){
-    $id=$_POST['id'];
-    $pago=$_POST['pago'];
+    $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+    $pago = isset($_POST['pago']) ? (float)$_POST['pago'] : 0;
+    $medio_pago = isset($_POST['medio_pago']) ? $_POST['medio_pago'] : 'Efectivo';
+    if ($medio_pago !== 'Nequi' && $medio_pago !== 'Efectivo') {
+        $medio_pago = 'Efectivo';
+    }
+    if ($id <= 0 || $pago <= 0) {
+        echo 'error_monto';
+        return;
+    }
+    if ($id_caja === null) {
+        echo 'error_caja_cerrada';
+        return;
+    }
     date_default_timezone_set('America/Bogota');
     $fecha = date('Y-m-d H:i:s');
 
     $venta->buscar_credito_id($id);
 
+    if (empty($venta->objetos)) {
+        echo 'error_credito';
+        return;
+    }
+
+    $id_cliente = 0;
+    $total = 0;
+    $depositado = 0;
+
     foreach ($venta->objetos as $objeto) {
         $id_cliente=$objeto->id_cliente;
         $total=(float)$objeto->total;
         $depositado=(float) $objeto->depositado;
+    }
+
+    if ($depositado >= $total) {
+        echo 'ya_pagado';
+        return;
     }
 
     $tipo_pago = "Credito";
@@ -34,22 +67,48 @@ if($_POST['funcion']=='depositar'){
         $tipo_pago = $tipo_pago . "_Pagado";
     }
 
-    $venta->Crear($id_cliente,$pago,$fecha,$vendedor,"Deposito_" . $id,$pago,$id_caja);
+    $venta->Crear($id_cliente,$pago,$fecha,$vendedor,"Deposito_" . $id,$pago,$id_caja,$medio_pago);
 
     
 
     $venta->Depositar($id,$depositado + $pago, $tipo_pago);
+    echo 'success';
     
 }
 if($_POST['funcion']=='registrar_compra'){
-    $total=$_POST['total'];
-    $cliente=$_POST['cliente'];
+    $total=(float)$_POST['total'];
+    $cliente=(int)$_POST['cliente'];
     $productos=json_decode($_POST['json']);
     $tipo_pago=$_POST['tipo_pago'];
     $pago=(float)$_POST['pago'];
+    $pago_efectivo = isset($_POST['pago_efectivo']) ? (float)$_POST['pago_efectivo'] : 0;
+    $pago_nequi = isset($_POST['pago_nequi']) ? (float)$_POST['pago_nequi'] : 0;
+    $medio_pago_venta = 'Efectivo';
     date_default_timezone_set('America/Bogota');
     $fecha = date('Y-m-d H:i:s');
-    $venta->Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago,$id_caja);
+
+    // Pago mixto: se guarda como tipo Mixto y en `depositado` se almacena la parte Nequi.
+    if ($tipo_pago === 'Mixto') {
+        if ($pago_nequi < 0 || $pago_efectivo < 0 || $pago_nequi > (float)$total || ($pago_nequi + $pago_efectivo) < (float)$total) {
+            echo 'error_mixto';
+            return;
+        }
+        $pago = $pago_nequi;
+        $medio_pago_venta = 'Mixto';
+    } else if ($tipo_pago === 'Nequi') {
+        $medio_pago_venta = 'Nequi';
+    } else if ($tipo_pago === 'Credito') {
+        $medio_pago_venta = 'Credito';
+        if ($pago < 0) {
+            echo 'error_monto_credito';
+            return;
+        }
+        if ($pago > (float)$total) {
+            $pago = (float)$total;
+        }
+    }
+
+    $venta->Crear($cliente,$total,$fecha,$vendedor,$tipo_pago,$pago,$id_caja,$medio_pago_venta);
     $venta->ultima_venta();
 
     foreach ($venta->objetos as $objeto) {
@@ -57,8 +116,13 @@ if($_POST['funcion']=='registrar_compra'){
         //echo $id_venta;
     }
 
-    if(strcmp($tipo_pago, "Credito") == 0 && $pago > 0.0) {  
-        $venta->Crear($cliente,$pago,$fecha,$vendedor,"Deposito_" . $id_venta ,$pago,$id_caja);
+    if(strcmp($tipo_pago, "Credito") == 0) {
+        if ($pago > 0.0) {
+            $venta->Crear($cliente,$pago,$fecha,$vendedor,"Deposito_" . $id_venta ,$pago,$id_caja,'Efectivo');
+        }
+        if ($pago >= (float)$total) {
+            $venta->Depositar($id_venta, (float)$total, 'Credito_Pagado');
+        }
     }
     
     try {
@@ -104,12 +168,13 @@ if($_POST['funcion']=='registrar_compra'){
             $conexion->exec("INSERT INTO venta_producto(precio,cantidad,subtotal,producto_id_producto,venta_id_venta) values('$prod->precio','$prod->cantidad','$subtotal','$prod->id','$id_venta')");
         }
         $conexion->commit();
+        echo 'success';
 
     } catch (Exception $error) {
        
         $conexion->rollBack();
         $venta->borrar($id_venta);
-        echo $error->getMessage();
+        echo 'error_venta';
     }
 
 }

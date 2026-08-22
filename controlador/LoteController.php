@@ -1,5 +1,13 @@
 <?php
 include '../modelo/Lote.php';
+session_start();
+if(!isset($_SESSION['usuario'])){
+    echo 'error_sesion';
+    exit;
+}
+if(!isset($_POST['funcion'])){
+    exit;
+}
 $lote = new Lote();
 if($_POST['funcion']=='crear'){
     $id_producto = $_POST['id_producto'];
@@ -166,12 +174,12 @@ if($_POST['funcion']=='borrar'){
     $lote->borrar($id);
 }
 if($_POST['funcion']=='stock_riesgo'){
-
     $json=array();
-    $lote->obtener_stock();
+    $lote->obtener_stock_completo();  // Usa función que trae TODOS los productos incluyendo los sin lotes
 
     foreach ($lote->objetos as $objeto) {
-        if($objeto->stock <5){
+        // Mostrar productos con stock 0, 1 y 2 nada más
+        if($objeto->stock == 0 || $objeto->stock == 1 || $objeto->stock == 2){
             $json[] = $objeto;
         }
     }

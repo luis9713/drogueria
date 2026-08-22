@@ -2,6 +2,10 @@
 require_once('../vendor/autoload.php');
 require_once('../modelo/Pdf.php');
 require_once('../modelo/Lote.php');
+session_start();
+if(!isset($_SESSION['usuario'])){
+    exit;
+}
 
 // Verificar si es una petición GET para reportes de alertas
 if (isset($_GET['funcion'])) {
