@@ -99,15 +99,15 @@ function getHtml($id_venta){
           $plantilla.='
           <tr>
             <td colspan="8" class="grand total">SUBTOTAL</td>
-            <td class="grand total">S/.'.$sub.'</td>
+            <td class="grand total">$'.number_format($sub,0,',','.').'</td>
           </tr>
           <tr>
             <td colspan="8" class="grand total">IGV(18%)</td>
-            <td class="grand total">S/.'.$igv.'</td>
+            <td class="grand total">$'.number_format($igv,0,',','.').'</td>
           </tr>
           <tr>
             <td colspan="8" class="grand total">TOTAL</td>
-            <td class="grand total">S/.'.$objeto->total.'</td>
+            <td class="grand total">$'.number_format($objeto->total,0,',','.').'</td>
           </tr>';
 
         }

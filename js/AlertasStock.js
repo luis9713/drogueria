@@ -12,9 +12,7 @@ function mostrar_stock_riesgo() {
                     {
                         data: "stock",
                         render: function(data, type, row) {
-                            let color = 'danger';
-                            if (row.stock > 1 && row.stock < 5) color = 'warning';
-                            return `<span class="badge badge-${color}">${row.stock || 0}</span>`;
+                            return `<span class="badge badge-danger">${row.stock || 0}</span>`;
                         }
                     },
                     { data: "medicamento" },
@@ -26,12 +24,9 @@ function mostrar_stock_riesgo() {
                     {
                         data: null,
                         render: function(data, type, row) {
-                            if (Number(row.stock) === 0) {
-                                return `<button type="button" class="descontinuar-producto btn btn-sm btn-outline-danger" data-id="${row.id_producto}" data-nombre="${row.medicamento}" title="Descontinuar producto">
-                                    <i class="fas fa-ban"></i> Descontinuar
-                                </button>`;
-                            }
-                            return `<span class="text-muted"><i class="fas fa-info-circle"></i> Aun tiene existencias</span>`;
+                            return `<button type="button" class="descontinuar-producto btn btn-sm btn-outline-danger" data-id="${row.id_producto}" data-nombre="${row.medicamento}" title="Descontinuar producto">
+                                <i class="fas fa-ban"></i> Descontinuar
+                            </button>`;
                         }
                     }
                 ],

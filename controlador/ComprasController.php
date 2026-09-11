@@ -25,15 +25,16 @@ if($_POST['funcion']=='registrar_compra'){
   $fecha_compra = isset($descripcion->fecha_compra) ? $descripcion->fecha_compra : '';
   $fecha_entrega = isset($descripcion->fecha_entrega) ? $descripcion->fecha_entrega : '';
   $total = isset($descripcion->total) ? (float)$descripcion->total : 0;
+  $flete = isset($descripcion->flete) ? (float)$descripcion->flete : 0;
   $estado = isset($descripcion->estado) ? (int)$descripcion->estado : 0;
   $proveedor = isset($descripcion->proveedor) ? (int)$descripcion->proveedor : 0;
 
-  if ($codigo === '' || $fecha_compra === '' || $fecha_entrega === '' || $total <= 0 || $estado <= 0 || $proveedor <= 0) {
+  if ($codigo === '' || $fecha_compra === '' || $fecha_entrega === '' || $total <= 0 || $flete < 0 || $estado <= 0 || $proveedor <= 0) {
     echo 'error_validacion';
     exit;
   }
 
-  if (!$compras->crear($codigo, $fecha_compra, $fecha_entrega, $total, $estado, $proveedor)) {
+  if (!$compras->crear($codigo, $fecha_compra, $fecha_entrega, $total, $estado, $proveedor, $flete)) {
     echo 'error_compra';
     exit;
   }
@@ -74,7 +75,9 @@ if($_POST['funcion']=='listar_compras'){
            'codigo'=>$objeto->codigo,
            'fecha_compra'=>$objeto->fecha_compra,
            'fecha_entrega'=>$objeto->fecha_entrega,
-           'total'=> $objeto->total,
+           'subtotal'=> $objeto->total,
+           'flete'=> $objeto->flete,
+           'total'=> $objeto->total_con_flete,
            'estado'=>$objeto->estado,
            'proveedor'=>$objeto->proveedor
        );
@@ -89,6 +92,176 @@ if($_POST['funcion']=='editarEstado'){
     echo 'edit';
     
 }
+if($_POST['funcion']=='marcar_pagado'){
+    $id_compra = isset($_POST['id_compra']) ? (int)$_POST['id_compra'] : 0;
+
+    if ($id_compra <= 0) {
+        echo 'error_datos';
+        exit;
+    }
+
+    $compra_actual = $compras->obtener($id_compra);
+    if (!$compra_actual) {
+        echo 'error_compra';
+        exit;
+    }
+
+    if ((int)$compra_actual->id_estado_pago === 1) {
+        echo 'ya_pagado';
+        exit;
+    }
+
+    if ($compras->marcar_pagado($id_compra)) {
+        echo 'pagado';
+    } else {
+        echo 'error_pagar';
+    }
+}
+if($_POST['funcion']=='obtener_compra_editar'){
+    $id_compra = isset($_POST['id_compra']) ? (int)$_POST['id_compra'] : 0;
+
+    if ($id_compra <= 0) {
+        echo 'error_datos';
+        exit;
+    }
+
+    $compra_actual = $compras->obtener($id_compra);
+    if (!$compra_actual) {
+        echo 'error_compra';
+        exit;
+    }
+
+    $lote->obtener_detalle_edicion($id_compra);
+    $lotes = array();
+    foreach ($lote->objetos as $objeto) {
+        $lotes[] = array(
+            'id_lote'=>$objeto->id_lote,
+            'id'=>$objeto->id_producto,
+            'nombre'=>$objeto->id_producto.' | '.$objeto->producto.' | '.$objeto->concentracion.' | '.$objeto->adicional,
+            'codigo'=>$objeto->codigo,
+            'cantidad'=>$objeto->cantidad,
+            'vencimiento'=>$objeto->vencimiento,
+            'precio_compra'=>$objeto->precio_compra,
+            'editable'=>((int)$objeto->ventas_asociadas === 0)
+        );
+    }
+
+    $json = array(
+        'compra'=>array(
+            'id'=>$compra_actual->id,
+            'codigo'=>$compra_actual->codigo,
+            'fecha_compra'=>$compra_actual->fecha_compra,
+            'fecha_entrega'=>$compra_actual->fecha_entrega,
+            'id_proveedor'=>$compra_actual->id_proveedor,
+            'flete'=>$compra_actual->flete
+        ),
+        'lotes'=>$lotes
+    );
+    echo json_encode($json);
+}
+if($_POST['funcion']=='actualizar_compra'){
+    $id_compra = isset($_POST['id_compra']) ? (int)$_POST['id_compra'] : 0;
+    $descripcion = isset($_POST['descripcionString']) ? json_decode($_POST['descripcionString']) : null;
+    $productos = isset($_POST['productosString']) ? json_decode($_POST['productosString']) : null;
+
+    if ($id_compra <= 0 || empty($descripcion) || !is_array($productos)) {
+        echo 'error_datos';
+        exit;
+    }
+
+    $codigo = isset($descripcion->codigo) ? trim($descripcion->codigo) : '';
+    $fecha_compra = isset($descripcion->fecha_compra) ? $descripcion->fecha_compra : '';
+    $fecha_entrega = isset($descripcion->fecha_entrega) ? $descripcion->fecha_entrega : '';
+    $proveedor = isset($descripcion->proveedor) ? (int)$descripcion->proveedor : 0;
+    $flete = isset($descripcion->flete) ? (float)$descripcion->flete : 0;
+
+    if ($codigo === '' || $fecha_compra === '' || $fecha_entrega === '' || $proveedor <= 0 || $flete < 0) {
+        echo 'error_validacion';
+        exit;
+    }
+
+    if (count($productos) === 0) {
+        echo 'error_sin_productos';
+        exit;
+    }
+
+    foreach ($productos as $prod) {
+        $codigo_lote = isset($prod->codigo) ? trim($prod->codigo) : '';
+        $cantidad = isset($prod->cantidad) ? (float)$prod->cantidad : 0;
+        $vencimiento = isset($prod->vencimiento) ? $prod->vencimiento : '';
+        $precio_compra = isset($prod->precio_compra) ? (float)$prod->precio_compra : 0;
+        $id_producto = isset($prod->id) ? (int)$prod->id : 0;
+
+        if ($codigo_lote === '' || $cantidad <= 0 || $vencimiento === '' || $precio_compra <= 0 || $id_producto <= 0) {
+            echo 'error_producto';
+            exit;
+        }
+    }
+
+    $ids_editables_actuales = $lote->ids_editables_por_compra($id_compra);
+    $ids_enviados = array();
+    foreach ($productos as $prod) {
+        if (isset($prod->id_lote) && (int)$prod->id_lote > 0) {
+            $ids_enviados[] = (int)$prod->id_lote;
+        }
+    }
+
+    foreach ($ids_enviados as $id_lote_enviado) {
+        if (!in_array($id_lote_enviado, $ids_editables_actuales)) {
+            echo 'error_lote_bloqueado';
+            exit;
+        }
+    }
+
+    try {
+        $conexion = new Conexion();
+        $pdo = $conexion->pdo;
+        $pdo->beginTransaction();
+
+        $ids_a_eliminar = array_diff($ids_editables_actuales, $ids_enviados);
+        foreach ($ids_a_eliminar as $id_lote_eliminar) {
+            $lote->eliminar_por_id($id_lote_eliminar);
+        }
+
+        foreach ($productos as $prod) {
+            if (!isset($prod->id_lote) || (int)$prod->id_lote <= 0) {
+                if (!$lote->crear_lote(trim($prod->codigo), (float)$prod->cantidad, $prod->vencimiento, (float)$prod->precio_compra, $id_compra, (int)$prod->id)) {
+                    throw new Exception('error_lote');
+                }
+            }
+        }
+
+        $total = $compras->calcular_total($id_compra);
+        $compras->actualizar_datos($id_compra, $codigo, $fecha_compra, $fecha_entrega, $proveedor, $total, $flete);
+
+        $pdo->commit();
+        echo 'actualizado';
+    } catch (Exception $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        echo 'error_actualizar';
+    }
+}
+if($_POST['funcion']=='eliminar_compra'){
+    $id_compra = isset($_POST['id_compra']) ? (int)$_POST['id_compra'] : 0;
+
+    if ($id_compra <= 0) {
+        echo 'error_datos';
+        exit;
+    }
+
+    if ($compras->tiene_ventas_asociadas($id_compra)) {
+        echo 'error_venta_asociada';
+        exit;
+    }
+
+    if ($compras->eliminar($id_compra)) {
+        echo 'eliminado';
+    } else {
+        echo 'error_eliminar';
+    }
+}
 if($_POST['funcion']=='imprimir'){
     $id_compra = $_POST['id'];
     $compras->obtenerDatos($id_compra);
@@ -97,6 +270,7 @@ if($_POST['funcion']=='imprimir'){
         $fecha_compra=$objeto->fecha_compra;
         $fecha_entrega=$objeto->fecha_entrega;
         $total=$objeto->total;
+        $flete=(float)$objeto->flete;
         $estado=$objeto->estado;
         $proveedor=$objeto->proveedor;
         $telefono=$objeto->telefono;
@@ -169,15 +343,19 @@ if($_POST['funcion']=='imprimir'){
           $plantilla.='
           <tr>
             <td colspan="8" class="grand total">SUBTOTAL</td>
-            <td class="grand total">S/.'.$sub.'</td>
+            <td class="grand total">$'.number_format($sub,0,',','.').'</td>
           </tr>
           <tr>
             <td colspan="8" class="grand total">IGV(18%)</td>
-            <td class="grand total">S/.'.$igv.'</td>
+            <td class="grand total">$'.number_format($igv,0,',','.').'</td>
+          </tr>
+          <tr>
+            <td colspan="8" class="grand total">FLETE</td>
+            <td class="grand total">$'.number_format($flete,0,',','.').'</td>
           </tr>
           <tr>
             <td colspan="8" class="grand total">TOTAL</td>
-            <td class="grand total">S/.'.$total.'</td>
+            <td class="grand total">$'.number_format($total+$flete,0,',','.').'</td>
           </tr>';
 
 

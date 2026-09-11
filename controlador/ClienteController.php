@@ -16,14 +16,20 @@ if($_POST['funcion']=='buscar'){
     $fecha_actual = new DateTime($fecha);
     $json=array();
     foreach ($cliente->objetos as $objeto) {
-        $nac = new DateTime($objeto->edad);
-        $edad = $nac->diff($fecha_actual);
-        $edad_y = $edad->y;
+        $edad_y = 0;
+        if (!empty($objeto->edad)) {
+            $nac = new DateTime($objeto->edad);
+            $edad = $nac->diff($fecha_actual);
+            $edad_y = $edad->y;
+        }
         $json[]=array(
             'id'=>$objeto->id,
-            'nombre'=>$objeto->nombre.' '.$objeto->apellidos,
+            'nombre'=>$objeto->nombre,
+            'apellidos'=>$objeto->apellidos,
+            'nombre_completo'=>$objeto->nombre.' '.$objeto->apellidos,
             'dni'=>$objeto->dni,
             'edad'=>$edad_y,
+            'nacimiento'=>$objeto->edad,
             'telefono'=>$objeto->telefono,
             'correo'=>$objeto->correo,
             'sexo'=>$objeto->sexo,
@@ -50,11 +56,16 @@ if($_POST['funcion']=='crear'){
 if($_POST['funcion']=='editar'){
     
     $id = $_POST['id'];
+    $nombre = $_POST['nombre'];
+    $apellido = $_POST['apellido'];
+    $dni = $_POST['dni'];
+    $edad = $_POST['edad'];
     $telefono = $_POST['telefono'];
     $correo = $_POST['correo'];
+    $sexo = $_POST['sexo'];
     $adicional = $_POST['adicional'];
 
-    $cliente->editar($id,$telefono,$correo,$adicional);
+    $cliente->editar($id,$nombre,$apellido,$dni,$edad,$telefono,$correo,$sexo,$adicional);
 }
 if($_POST['funcion']=='borrar'){
     $id=$_POST['id'];

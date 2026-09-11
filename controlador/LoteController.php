@@ -178,8 +178,8 @@ if($_POST['funcion']=='stock_riesgo'){
     $lote->obtener_stock_completo();  // Usa función que trae TODOS los productos incluyendo los sin lotes
 
     foreach ($lote->objetos as $objeto) {
-        // Mostrar productos con stock 0, 1 y 2 nada más
-        if($objeto->stock == 0 || $objeto->stock == 1 || $objeto->stock == 2){
+        // Mostrar solo productos con stock en 0
+        if((float)$objeto->stock == 0){
             $json[] = $objeto;
         }
     }

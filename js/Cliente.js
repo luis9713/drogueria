@@ -11,7 +11,7 @@ $(document).ready(function() {
             let template = '';
             clientes.forEach(cliente => {
                 template += `
-                <div cliId="${cliente.id}"cliTelefono="${cliente.telefono}"cliCorreo="${cliente.correo}"cliAdicional="${cliente.adicional}" cliNombre="${cliente.nombre}"class="col-12 col-sm-6 col-md-4 d-flex align-items-stretch">
+                <div cliId="${cliente.id}" cliNombre="${cliente.nombre}" cliApellido="${cliente.apellidos}" cliDni="${cliente.dni}" cliEdad="${cliente.nacimiento}" cliTelefono="${cliente.telefono}" cliCorreo="${cliente.correo}" cliSexo="${cliente.sexo}" cliAdicional="${cliente.adicional}" class="col-12 col-sm-6 col-md-4 d-flex align-items-stretch">
               <div class="card bg-light">
                 <div class="card-header text-muted border-bottom-0">
                   <h1 class="badge badge-success">Cliente</h1>
@@ -19,7 +19,7 @@ $(document).ready(function() {
                 <div class="card-body pt-0">
                   <div class="row">
                     <div class="col-7">
-                      <h2 class="lead"><b>${cliente.nombre}</b></h2>
+                      <h2 class="lead"><b>${cliente.nombre_completo || (cliente.nombre + ' ' + cliente.apellidos)}</b></h2>
                       
                       <ul class="ml-4 mb-0 fa-ul text-muted">
                        <li class="small"><span class="fa-li"><i class="fas fa-lg fa-building"></i></span> Dni: ${cliente.dni}</li>
@@ -91,25 +91,41 @@ $(document).ready(function() {
         })
         e.preventDefault();
     });
-    $(document).on('click', '.editar', (e) => {
-        let elemento = $(this)[0].activeElement.parentElement.parentElement.parentElement.parentElement;
+    $(document).on('click', '.editar', function(e) {
+        let elemento = $(this).closest('.d-flex');
+        let id = $(elemento).attr('cliId');
+        let nombre = $(elemento).attr('cliNombre');
+        let apellido = $(elemento).attr('cliApellido');
+        let dni = $(elemento).attr('cliDni');
+        let edad = $(elemento).attr('cliEdad');
         let telefono = $(elemento).attr('cliTelefono');
         let correo = $(elemento).attr('cliCorreo');
+        let sexo = $(elemento).attr('cliSexo');
         let adicional = $(elemento).attr('cliAdicional');
-        let id = $(elemento).attr('cliId');
+
+        $('#id_cliente').val(id);
+        $('#nombre_edit').val(nombre);
+        $('#apellido_edit').val(apellido);
+        $('#dni_edit').val(dni);
+        $('#edad_edit').val(edad);
         $('#telefono_edit').val(telefono);
         $('#correo_edit').val(correo);
+        $('#sexo_edit').val(sexo);
         $('#adicional_edit').val(adicional);
-        $('#id_cliente').val(id);
     });
     $('#form-editar').submit(e => {
 
         let id = $('#id_cliente').val();
+        let nombre = $('#nombre_edit').val();
+        let apellido = $('#apellido_edit').val();
+        let dni = $('#dni_edit').val();
+        let edad = $('#edad_edit').val();
         let telefono = $('#telefono_edit').val();
         let correo = $('#correo_edit').val();
+        let sexo = $('#sexo_edit').val();
         let adicional = $('#adicional_edit').val();
         funcion = 'editar';
-        $.post('../controlador/ClienteController.php', { id, telefono, correo, adicional, funcion }, (response) => {
+        $.post('../controlador/ClienteController.php', { id, nombre, apellido, dni, edad, telefono, correo, sexo, adicional, funcion }, (response) => {
             console.log(response);
             if (response == 'edit') {
                 $('#edit-cli').hide('slow');
@@ -127,11 +143,11 @@ $(document).ready(function() {
         })
         e.preventDefault();
     });
-    $(document).on('click', '.borrar', (e) => {
+    $(document).on('click', '.borrar', function(e) {
         funcion = "borrar";
-        let elemento = $(this)[0].activeElement.parentElement.parentElement.parentElement.parentElement;
+        let elemento = $(this).closest('.d-flex');
         let id = $(elemento).attr('cliId');
-        let nombre = $(elemento).attr('cliNombre');
+        let nombre = $(elemento).attr('cliNombre') + ' ' + $(elemento).attr('cliApellido');
         let avatar = '../img/avatar.png';
 
         const swalWithBootstrapButtons = Swal.mixin({

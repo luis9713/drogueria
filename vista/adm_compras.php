@@ -9,34 +9,107 @@ include_once 'layouts/header.php';
 <?php
 include_once 'layouts/nav.php';
 ?>
-<div class="modal fade" id="cambiarEstado" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
+<div class="modal fade" id="editar_compra" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
         <div class="card card-success">
             <div class="card-header">
-                <h3 class="card-title">Cambiar estado</h3>
+                <h3 class="card-title">Editar compra</h3>
                 <button data-dismiss="modal" aria-label="close"class="close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="card-body">
-              <div class="alert alert-danger text-center" id="noedit" style='display:none;'>
-                <span><i class="fas fa-times m-1"></i>No se pudo editar</span>
+            <div class="card-body row">
+              <div class="alert alert-danger text-center col-12" id="noedit-compra" style='display:none;'>
+                <span id="error-editar-compra"><i class="fas fa-times m-1"></i>No se pudo editar</span>
               </div>
-              <div class="alert alert-success text-center" id="edit" style='display:none;'>
-                <span><i class="fas fa-check m-1"></i>Se cambio el estado</span>
+              <div class="alert alert-success text-center col-12" id="edit-compra" style='display:none;'>
+                <span><i class="fas fa-check m-1"></i>Se edito correctamente</span>
               </div>
-                <form id="form-editar">
+              <div class="card col-sm-3 p-3">
+                <input type="hidden" id="editar_id_compra">
+                <div class="form-group">
+                    <label for="editar_codigo">Codigo</label>
+                    <input id="editar_codigo" type="text" class="form-control" placeholder="Ingrese codigo" required>
+                </div>
+                <div class="form-group">
+                    <label for="editar_fecha_compra">Fecha de compra</label>
+                    <input id="editar_fecha_compra" type="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editar_fecha_entrega">Fecha de entrega</label>
+                    <input id="editar_fecha_entrega" type="date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="editar_proveedor">Proveedor</label>
+                    <select id="editar_proveedor" class="form-control select2" style="width: 100%"></select>
+                </div>
+                <div class="form-group">
+                    <label for="editar_flete">Flete</label>
+                    <input id="editar_flete" type="number" step="any" min="0" class="form-control" value='0' placeholder="Ingrese valor del flete">
+                </div>
+              </div>
+              <div class="card col-sm-9 p-3">
+                <div class="card p-3">
                     <div class="form-group">
-                        <label for="estado_compra">Estado</label>
-                        <select  id="estado_compra" class="form-control select2"style="width: 100%"></select>
-                        <input type="hidden" id="id_compra">
+                        <label for="editar_producto">Producto</label>
+                        <select id="editar_producto" class="form-control select2" style="width: 100%"></select>
                     </div>
+                    <div class="form-group">
+                        <label for="editar_codigo_lote">Codigo</label>
+                        <input id="editar_codigo_lote" type="text" class="form-control" placeholder="Ingrese codigo de lote">
+                    </div>
+                    <div class="form-group">
+                        <label for="editar_cantidad">Cantidad</label>
+                        <input id="editar_cantidad" type="number" class="form-control" value='1' placeholder="Ingrese cantidad">
+                    </div>
+                    <div class="form-group">
+                        <label for="editar_vencimiento">Vencimiento</label>
+                        <input id="editar_vencimiento" type="date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="editar_precio_compra">Precio de compra</label>
+                        <input id="editar_precio_compra" type="number" step="any" class="form-control" value='1' placeholder="Ingrese precio de compra">
+                    </div>
+                    <div class="form-group text-right">
+                        <button type="button" id="editar_agregar_producto" class="btn bg-gradient-success ml-2">Agregar</button>
+                    </div>
+                </div>
+              </div>
+              <div class="card col-sm-12">
+                <table class="table table-hover text-nowrap table-responsive">
+                    <thead class='table-success'>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Codigo</th>
+                            <th>Cantidad</th>
+                            <th>Vencimiento</th>
+                            <th>Precio de compra</th>
+                            <th>Subtotal</th>
+                            <th>Operacion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="editar_registros" class='table-active'></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="text-right">Subtotal productos:</td>
+                            <td colspan="2" id="editar_subtotal">0</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="text-right">Flete:</td>
+                            <td colspan="2" id="editar_flete_mostrado">0</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="text-right"><strong>Total factura:</strong></td>
+                            <td colspan="2"><strong id="editar_total">0</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+              </div>
             </div>
             <div class="card-footer">
-                <button type="submit"class="btn bg-gradient-primary float-right m-1">Guardar</button>
-                <button type="button" data-dismiss="modal"class="btn btn-outline-secondary float-right m-1">Close</button>
-                </form>
+                <button type="button" id="guardar_edicion_compra" class="btn bg-gradient-primary float-right m-1">Guardar cambios</button>
+                <button type="button" data-dismiss="modal"class="btn btn-outline-secondary float-right m-1">Cerrar</button>
             </div>
         </div>
     </div>
@@ -92,12 +165,25 @@ include_once 'layouts/nav.php';
                   </tbody>
                 </table>
                 <div class="float-right input-group-append">
-                  <h3 class="m-3">Total: </h3>
-                  <h3 class="m-3"id="total"></h3>
+                  <table class="table table-sm mb-0">
+                    <tr>
+                      <td class="text-right">Subtotal productos:</td>
+                      <td class="text-right" id="subtotal_detalle"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-right">Flete:</td>
+                      <td class="text-right" id="flete_detalle"></td>
+                    </tr>
+                    <tr>
+                      <td class="text-right"><strong>Total:</strong></td>
+                      <td class="text-right"><strong id="total"></strong></td>
+                    </tr>
+                  </table>
                 </div>
             </div>
             <div class="card-footer">
-                
+                <button type="button" id="imprimir_detalle" class="btn btn-secondary float-left m-1"><i class="fas fa-print"></i> Imprimir</button>
+                <button type="button" id="marcar_pagado_detalle" class="btn bg-gradient-success float-left m-1" style="display:none;"><i class="fas fa-check"></i> Marcar como pagado</button>
                 <button type="button" data-dismiss="modal"class="btn btn-outline-secondary float-right m-1">Close</button>
                
             </div>

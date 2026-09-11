@@ -88,6 +88,32 @@ class Lote{
         $query = $this->acceso->prepare($sql);
         return $query->execute(array(':codigo'=>$codigo,':cantidad'=>$cantidad,':cantidad_lote'=>$cantidad,':vencimiento'=>$vencimiento,':precio_compra'=>$precio_compra,':id_compra'=>$id_compra,':id_producto'=>$id_producto));
     }
+    function obtener_detalle_edicion($id_compra){
+        $sql="SELECT l.id as id_lote, l.id_producto, p.nombre as producto, p.concentracion, p.adicional,
+              l.codigo, l.cantidad, l.vencimiento, l.precio_compra,
+              (SELECT COUNT(*) FROM detalle_venta dv WHERE dv.id__det_lote=l.id) as ventas_asociadas
+              FROM lote l
+              JOIN producto p ON p.id_producto=l.id_producto
+              WHERE l.id_compra=:id_compra
+              ORDER BY l.id ASC";
+        $query = $this->acceso->prepare($sql);
+        $query->execute(array(':id_compra'=>$id_compra));
+        $this->objetos=$query->fetchall();
+        return $this->objetos;
+    }
+    function ids_editables_por_compra($id_compra){
+        $sql="SELECT l.id FROM lote l
+              WHERE l.id_compra=:id_compra
+              AND NOT EXISTS (SELECT 1 FROM detalle_venta dv WHERE dv.id__det_lote=l.id)";
+        $query = $this->acceso->prepare($sql);
+        $query->execute(array(':id_compra'=>$id_compra));
+        return $query->fetchAll(PDO::FETCH_COLUMN);
+    }
+    function eliminar_por_id($id_lote){
+        $sql="DELETE FROM lote WHERE id=:id_lote";
+        $query = $this->acceso->prepare($sql);
+        return $query->execute(array(':id_lote'=>$id_lote));
+    }
     function ver($id){
         $sql="SELECT l.codigo as codigo, l.cantidad as cantidad, vencimiento, precio_compra, p.nombre as producto, concentracion,adicional,
             la.nombre as laboratorio, t.nombre as tipo, pre.nombre as presentacion

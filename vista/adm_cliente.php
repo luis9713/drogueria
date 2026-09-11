@@ -28,9 +28,22 @@ include_once 'layouts/nav.php';
               </div>
 
                 <form id="form-editar">
-                    
-                   
-                    
+                    <div class="form-group">
+                        <label for="nombre_edit">Nombres</label>
+                        <input id="nombre_edit"type="text" class="form-control" placeholder="Ingrese nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apellido_edit">Apellidos</label>
+                        <input id="apellido_edit"type="text" class="form-control" placeholder="Ingrese apellido" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dni_edit">DNI</label>
+                        <input id="dni_edit"type="number" class="form-control" placeholder="Ingrese DNI" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edad_edit">Nacimiento</label>
+                        <input id="edad_edit"type="date" class="form-control" placeholder="Ingrese Nacimiento" required>
+                    </div>
                     <div class="form-group">
                         <label for="telefono_edit">Telefono</label>
                         <input id="telefono_edit"type="number" class="form-control" placeholder="Ingrese telefono" required>
@@ -39,7 +52,10 @@ include_once 'layouts/nav.php';
                         <label for="correo_edit">Correo</label>
                         <input id="correo_edit"type="email" class="form-control" placeholder="Ingrese correo">
                     </div>
-                    
+                    <div class="form-group">
+                        <label for="sexo_edit">Sexo</label>
+                        <input id="sexo_edit"type="text" class="form-control" placeholder="Ingrese sexo" required>
+                    </div>
                     <div class="form-group">
                         <label for="adicional_edit">Adicional</label>
                         <input id="adicional_edit"type="text" class="form-control" placeholder="Ingrese adicional" required>

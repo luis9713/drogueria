@@ -54,12 +54,12 @@ include_once 'layouts/nav.php';
                             <input id="fecha_entrega"type="date" class="form-control" placeholder="Ingrese fecha de entrega" required>
                         </div>
                         <div class="form-group">
-                            <label for="total">Total</label>
-                            <input id="total"type="number" step="any" class="form-control" value='1' placeholder="Ingrese total" required>
-                        </div>
-                        <div class="form-group">
                             <label for="estado">Estado de pago</label>
                             <select  id="estado" class="form-control select2" style="width: 100%"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="flete">Flete</label>
+                            <input id="flete" type="number" step="any" min="0" class="form-control" value='0' placeholder="Ingrese valor del flete (opcional)">
                         </div>
                         <div class="form-group">
                             <label for="proveedor">Proveedor</label>
@@ -78,6 +78,7 @@ include_once 'layouts/nav.php';
                         <div class="form-group">
                             <label for="producto">Producto</label>
                             <select  id="producto" class="form-control select2" style="width: 100%"></select>
+                            <small id="precio_venta_actual" class="form-text text-muted"></small>
                         </div>
                         <div class="form-group">
                             <label for="codigo_lote">Codigo</label>
@@ -92,8 +93,17 @@ include_once 'layouts/nav.php';
                             <input id="vencimiento"type="date" class="form-control" placeholder="Ingrese vencimiento" required>
                         </div>
                         <div class="form-group">
-                            <label for="precio_compra">Precio de compra</label>
+                            <label for="precio_compra" id="label_precio_compra">Precio de compra (unitario)</label>
                             <input id="precio_compra"type="number" step="any" class="form-control" value='1' placeholder="Ingrese precio de compra" required>
+                            <div class="form-check form-check-inline mt-2">
+                                <input class="form-check-input" type="radio" name="modo_precio" id="modo_precio_unitario" value="unitario" checked>
+                                <label class="form-check-label" for="modo_precio_unitario">Valor unitario</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="modo_precio" id="modo_precio_total" value="total">
+                                <label class="form-check-label" for="modo_precio_total">Valor total de la linea</label>
+                            </div>
+                            <small id="precio_unitario_calculado" class="form-text text-muted"></small>
                         </div>
                         <div class="form-group text-right">
                             <button class="agregar-producto btn bg-gradient-success ml-2">Agregar</button>
@@ -111,11 +121,26 @@ include_once 'layouts/nav.php';
                                     <th>Cantidad</th>
                                     <th>Vencimiento</th>
                                     <th>Precio de compra</th>
+                                    <th>Subtotal</th>
                                     <th>Operacion</th>
                                 </tr>
                             </thead>
                             <tbody id="registros_compra" class='table-active'>
                             </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-right">Subtotal productos:</td>
+                                    <td colspan="2" id="total_compra">0</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="text-right">Flete:</td>
+                                    <td colspan="2" id="flete_mostrado">0</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="text-right"><strong>Total factura:</strong></td>
+                                    <td colspan="2"><strong id="total_factura">0</strong></td>
+                                </tr>
+                            </tfoot>
                         </table>
                         <button class="crear-compra btn bg-gradient-info text-center">Crear compra</button>
                     </div>

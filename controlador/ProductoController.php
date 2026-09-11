@@ -373,7 +373,8 @@ if($_POST['funcion']=='rellenar_productos'){
         
         $json[]=array(
            
-            'nombre'=>$objeto->id_producto.' | '.$objeto->nombre.' | '.$objeto->concentracion.' | '.$objeto->adicional.' | '.$objeto->laboratorio.' | '.$objeto->presentacion
+            'nombre'=>$objeto->id_producto.' | '.$objeto->nombre.' | '.$objeto->concentracion.' | '.$objeto->adicional.' | '.$objeto->laboratorio.' | '.$objeto->presentacion,
+            'precio'=>$objeto->precio
         );
     }
     $jsonstring = json_encode($json);

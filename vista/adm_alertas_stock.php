@@ -54,7 +54,7 @@ include_once 'layouts/nav.php';
             </table>
           </div>
           <div class="card-footer bg-danger text-white">
-            <small><i class="fas fa-info-circle mr-1"></i>Productos con stock de 0, 1 y 2 unidades. <strong>Se recomienda realizar pedido urgente.</strong></small>
+            <small><i class="fas fa-info-circle mr-1"></i>Productos con stock en 0 unidades (agotados). <strong>Se recomienda realizar pedido urgente o descontinuar.</strong></small>
           </div>
         </div>
       </div>

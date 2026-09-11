@@ -9,7 +9,7 @@ class Cliente{
     function buscar(){
         if(!empty($_POST['consulta'])){
             $consulta=$_POST['consulta'];
-            $sql="SELECT * FROM cliente where estado='A' and nombre LIKE :consulta";
+            $sql="SELECT * FROM cliente where estado='A' and (nombre LIKE :consulta or apellidos LIKE :consulta or dni LIKE :consulta)";
             $query = $this->acceso->prepare($sql);
             $query->execute(array(':consulta'=>"%$consulta%"));
             $this->objetos=$query->fetchall();
@@ -50,7 +50,7 @@ class Cliente{
             echo 'add';
         }
     }
-    function editar($id,$telefono,$correo,$adicional){
+    function editar($id,$nombre,$apellido,$dni,$edad,$telefono,$correo,$sexo,$adicional){
         $sql="SELECT id FROM cliente where id=:id";
         $query = $this->acceso->prepare($sql);
         $query->execute(array(':id'=>$id));
@@ -59,9 +59,19 @@ class Cliente{
             echo 'noedit';
         }
         else{
-            $sql="UPDATE cliente SET telefono=:telefono, correo=:correo, adicional=:adicional where id=:id";
+            $sql="UPDATE cliente SET nombre=:nombre, apellidos=:apellido, dni=:dni, edad=:edad, telefono=:telefono, correo=:correo, sexo=:sexo, adicional=:adicional where id=:id";
             $query = $this->acceso->prepare($sql);
-            $query->execute(array(':id'=>$id,':telefono'=>$telefono,':correo'=>$correo,':adicional'=>$adicional));
+            $query->execute(array(
+                ':id'=>$id,
+                ':nombre'=>$nombre,
+                ':apellido'=>$apellido,
+                ':dni'=>$dni,
+                ':edad'=>$edad,
+                ':telefono'=>$telefono,
+                ':correo'=>$correo,
+                ':sexo'=>$sexo,
+                ':adicional'=>$adicional
+            ));
             echo 'edit';
         }
     
